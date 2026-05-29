@@ -169,12 +169,37 @@ async def analyze_url(req: UrlRequest):
 BGG_BASE = "https://boardgamegeek.com/xmlapi2"
 
 
+async def bgg_fetch(url: str) -> str:
+    """Use Playwright's in-browser fetch to bypass Cloudflare on BGG."""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", None),
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
+        page = await browser.new_page()
+        try:
+            result = await page.evaluate(
+                """async (url) => {
+                    const r = await fetch(url, {credentials: 'omit'});
+                    if (r.status === 202) return '__RETRY__';
+                    return await r.text();
+                }""",
+                url,
+            )
+        finally:
+            await browser.close()
+        return result
+
+
 @app.get("/bgg/search")
 async def bgg_search(q: str = Query(..., min_length=1)):
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{BGG_BASE}/search", params={"query": q, "type": "boardgame"},
-                             timeout=10, follow_redirects=True)
-    root = ET.fromstring(r.text)
+    url = f"{BGG_BASE}/search?query={q}&type=boardgame"
+    xml_text = await bgg_fetch(url)
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as e:
+        raise HTTPException(status_code=502, detail=f"BGG XML parse error: {e} | response: {xml_text[:200]}")
     results = []
     for item in root.findall("item"):
         name_el = item.find("name[@type='primary']") or item.find("name")
@@ -191,15 +216,17 @@ async def bgg_search(q: str = Query(..., min_length=1)):
 @app.get("/bgg/thing")
 async def bgg_thing(id: str = Query(...)):
     for attempt in range(3):
-        async with httpx.AsyncClient() as client:
-            r = await client.get(f"{BGG_BASE}/thing", params={"id": id, "stats": 1, "videos": 1},
-                                 timeout=15, follow_redirects=True)
-        if r.status_code == 202:
+        url = f"{BGG_BASE}/thing?id={id}&stats=1&videos=1"
+        xml_text = await bgg_fetch(url)
+        if xml_text == "__RETRY__":
             await asyncio.sleep(2)
             continue
         break
 
-    root = ET.fromstring(r.text)
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as e:
+        raise HTTPException(status_code=502, detail=f"BGG XML parse error: {e} | response: {xml_text[:200]}")
     item = root.find("item")
     if item is None:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
