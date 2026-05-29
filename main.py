@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
 
-groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
+groq_client = Groq(api_key=os.environ["GROQ_API_KEY"]) if "GROQ_API_KEY" in os.environ else None
 
 app = FastAPI(title="BSWE URL Analyzer")
 
@@ -146,6 +146,8 @@ async def analyze_url(req: UrlRequest):
     text = extract_text(html)
     prompt = PROMPT_TEMPLATE.replace("{text}", text)
 
+    if not groq_client:
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY nicht konfiguriert")
     try:
         completion = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
