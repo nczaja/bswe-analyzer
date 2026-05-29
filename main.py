@@ -2,19 +2,18 @@ import os
 import re
 import json
 import httpx
-import google.generativeai as genai
+from groq import Groq
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-2.0-flash-lite")
+groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
 app = FastAPI(title="BSWE URL Analyzer")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In Produktion auf deine Domain einschränken
+    allow_origins=["*"],
     allow_methods=["POST"],
     allow_headers=["*"],
 )
@@ -27,7 +26,7 @@ class UrlRequest(BaseModel):
 PROMPT_TEMPLATE = """Analysiere diesen Text einer Ferienhaus-Website und extrahiere folgende Informationen als JSON.
 Antworte ausschließlich mit gültigem JSON, ohne Markdown-Codeblöcke, ohne Erklärungen.
 
-{{
+{
   "name": "Name der Unterkunft",
   "price": 450,
   "beds": 6,
@@ -39,13 +38,13 @@ Antworte ausschließlich mit gültigem JSON, ohne Markdown-Codeblöcke, ohne Erk
   "rooms": ["2× Doppelzimmer", "1× Einzelzimmer"],
   "notes": "Kamin vorhanden. Parkplatz inklusive.",
   "photos": ["https://..."]
-}}
+}
 
 Regeln:
 - price: Gesamtpreis in Euro als Zahl, null wenn unklar
 - beds: Anzahl Schlafplätze als Zahl, null wenn unklar
 - sauna: true/false/null
-- bigTable: Großer Esstisch (≥6 Personen), true/false/null
+- bigTable: Großer Esstisch (>=6 Personen), true/false/null
 - sqm: Wohnfläche in m² als Zahl, null wenn unklar
 - trainStation: Nächster Bahnhof mit Entfernung, null wenn unbekannt
 - rooms: Array von Zimmertypen
@@ -91,12 +90,17 @@ async def analyze_url(req: UrlRequest):
     prompt = PROMPT_TEMPLATE.replace("{text}", text)
 
     try:
-        response = model.generate_content(prompt)
-        result = json.loads(response.text.strip())
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=1024,
+        )
+        result = json.loads(completion.choices[0].message.content.strip())
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="Kein gültiges JSON zurückbekommen")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini-Fehler: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Groq-Fehler: {str(e)}")
 
     return result
 
