@@ -170,7 +170,7 @@ BGG_BASE = "https://boardgamegeek.com/xmlapi2"
 
 
 async def bgg_fetch(url: str) -> str:
-    """Use Playwright's in-browser fetch to bypass Cloudflare on BGG."""
+    """Navigate to BGG XML API URL with real browser to bypass Cloudflare."""
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
@@ -179,17 +179,13 @@ async def bgg_fetch(url: str) -> str:
         )
         page = await browser.new_page()
         try:
-            result = await page.evaluate(
-                """async (url) => {
-                    const r = await fetch(url, {credentials: 'omit'});
-                    if (r.status === 202) return '__RETRY__';
-                    return await r.text();
-                }""",
-                url,
-            )
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            if response and response.status == 202:
+                return "__RETRY__"
+            body = await response.body()
+            return body.decode("utf-8", errors="replace")
         finally:
             await browser.close()
-        return result
 
 
 @app.get("/bgg/search")
