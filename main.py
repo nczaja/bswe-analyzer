@@ -194,39 +194,45 @@ async def bgg_fetch(url: str) -> str:
 
 @app.get("/bgg/search")
 async def bgg_search(q: str = Query(..., min_length=1)):
-    url = f"{BGG_BASE}/search?query={q}&type=boardgame"
-    xml_text = await bgg_fetch(url)
     try:
+        url = f"{BGG_BASE}/search?query={q}&type=boardgame"
+        xml_text = await bgg_fetch(url)
         root = ET.fromstring(xml_text)
-    except ET.ParseError as e:
-        raise HTTPException(status_code=502, detail=f"BGG XML parse error: {e} | response: {xml_text[:200]}")
-    results = []
-    for item in root.findall("item"):
-        name_el = item.find("name[@type='primary']") or item.find("name")
-        year_el = item.find("yearpublished")
-        results.append({
-            "id": item.get("id"),
-            "name": name_el.get("value") if name_el is not None else "?",
-            "year": year_el.get("value") if year_el is not None else None,
-        })
-    results.sort(key=lambda x: int(x["year"] or 0), reverse=True)
-    return results[:15]
+        results = []
+        for item in root.findall("item"):
+            name_el = item.find("name[@type='primary']") or item.find("name")
+            year_el = item.find("yearpublished")
+            results.append({
+                "id": item.get("id"),
+                "name": name_el.get("value") if name_el is not None else "?",
+                "year": year_el.get("value") if year_el is not None else None,
+            })
+        results.sort(key=lambda x: int(x["year"] or 0), reverse=True)
+        return results[:15]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BGG search error: {type(e).__name__}: {e}")
 
 
 @app.get("/bgg/thing")
 async def bgg_thing(id: str = Query(...)):
-    for attempt in range(3):
-        url = f"{BGG_BASE}/thing?id={id}&stats=1&videos=1"
-        xml_text = await bgg_fetch(url)
-        if xml_text == "__RETRY__":
-            await asyncio.sleep(2)
-            continue
-        break
-
     try:
+        xml_text = "__RETRY__"
+        for attempt in range(3):
+            url = f"{BGG_BASE}/thing?id={id}&stats=1&videos=1"
+            xml_text = await bgg_fetch(url)
+            if xml_text == "__RETRY__":
+                await asyncio.sleep(2)
+                continue
+            break
+        if xml_text == "__RETRY__":
+            raise HTTPException(status_code=502, detail="BGG returned 202 after 3 retries")
         root = ET.fromstring(xml_text)
-    except ET.ParseError as e:
-        raise HTTPException(status_code=502, detail=f"BGG XML parse error: {e} | response: {xml_text[:200]}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BGG thing error: {type(e).__name__}: {e}")
     item = root.find("item")
     if item is None:
         raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
