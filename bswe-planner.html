@@ -1094,7 +1094,7 @@ function app() {
     isParticipant(id){ return this.currentParticipantIds.includes(id); },
     toggleParticipant(id){
       const i=this.currentParticipantIds.indexOf(id);
-      if(i>=0){if(this.currentParticipantIds.length>2)this.currentParticipantIds.splice(i,1);}
+      if(i>=0){if(this.currentParticipantIds.length>1)this.currentParticipantIds.splice(i,1);}
       else this.currentParticipantIds.push(id);
       this.recalcSettlement();
     },
