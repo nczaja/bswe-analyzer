@@ -55,6 +55,37 @@ Seiteninhalt:
 {text}"""
 
 
+def extract_photos(html: str, base_url: str = "") -> list[str]:
+    """Extract image URLs from rendered HTML before tag stripping."""
+    # Find all img src attributes
+    srcs = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, flags=re.IGNORECASE)
+    photos = []
+    for src in srcs:
+        # Skip tiny images, icons, SVGs, data URIs, tracking pixels
+        if src.startswith("data:"):
+            continue
+        lower = src.lower()
+        if any(x in lower for x in ["icon", "logo", "pixel", "spinner", "avatar", "flag", ".svg", "1x1", "blank"]):
+            continue
+        # Make absolute URL
+        if src.startswith("//"):
+            src = "https:" + src
+        elif src.startswith("/") and base_url:
+            from urllib.parse import urlparse
+            parsed = urlparse(base_url)
+            src = f"{parsed.scheme}://{parsed.netloc}{src}"
+        if src.startswith("http"):
+            photos.append(src)
+    # Deduplicate preserving order, limit to 8
+    seen = set()
+    unique = []
+    for p in photos:
+        if p not in seen:
+            seen.add(p)
+            unique.append(p)
+    return unique[:8]
+
+
 def extract_text(html: str) -> str:
     html = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
     html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
@@ -98,6 +129,7 @@ async def analyze_url(req: UrlRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Seite nicht erreichbar: {str(e)}")
 
+    photos = extract_photos(html, url)
     text = extract_text(html)
     prompt = PROMPT_TEMPLATE.replace("{text}", text)
 
@@ -113,6 +145,10 @@ async def analyze_url(req: UrlRequest):
         raise HTTPException(status_code=500, detail="Kein gültiges JSON zurückbekommen")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Groq-Fehler: {str(e)}")
+
+    # Override photos with directly extracted ones (more reliable than LLM extraction)
+    if photos:
+        result["photos"] = photos
 
     return result
 
