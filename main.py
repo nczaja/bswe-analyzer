@@ -169,12 +169,21 @@ async def analyze_url(req: UrlRequest):
 
 
 BGG_BASE = "https://boardgamegeek.com/xmlapi2"
+BGG_USERNAME = os.environ.get("BGG_USERNAME", "")
+BGG_PASSWORD = os.environ.get("BGG_PASSWORD", "")
 
 
 async def bgg_fetch(url: str) -> str:
-    """Fetch BGG XML API impersonating Chrome TLS fingerprint via curl_cffi."""
+    """Login to BGG, then fetch XML API with authenticated session."""
     from curl_cffi.requests import AsyncSession
     async with AsyncSession() as session:
+        if BGG_USERNAME and BGG_PASSWORD:
+            await session.post(
+                "https://boardgamegeek.com/login/api/v1",
+                json={"credentials": {"username": BGG_USERNAME, "password": BGG_PASSWORD}},
+                impersonate="chrome120",
+                timeout=10,
+            )
         r = await session.get(url, impersonate="chrome120", timeout=15)
         if r.status_code == 202:
             return "__RETRY__"
