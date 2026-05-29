@@ -57,8 +57,14 @@ Seiteninhalt:
 
 def extract_photos(html: str, base_url: str = "") -> list[str]:
     """Extract image URLs from rendered HTML before tag stripping."""
-    # Find all img src attributes
-    srcs = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, flags=re.IGNORECASE)
+    # Find all img src / data-src / data-lazy-src / data-original attributes
+    srcs = re.findall(
+        r'<img[^>]+(?:src|data-src|data-lazy-src|data-original|data-lazy|data-image)=["\']([^"\']+)["\']',
+        html, flags=re.IGNORECASE
+    )
+    # Also catch srcset (first URL only)
+    srcsets = re.findall(r'<img[^>]+srcset=["\']([^\s"\']+)', html, flags=re.IGNORECASE)
+    srcs += srcsets
     photos = []
     for src in srcs:
         # Skip tiny images, icons, SVGs, data URIs, tracking pixels
@@ -110,8 +116,11 @@ async def fetch_with_playwright(url: str) -> str:
         )
         try:
             await page.goto(url, wait_until="networkidle", timeout=30000)
-            # Kurz warten damit lazy-loaded Inhalte sichtbar werden
-            await page.wait_for_timeout(2000)
+            # Scroll to trigger lazy loading
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+            await page.wait_for_timeout(1500)
+            await page.evaluate("window.scrollTo(0, 0)")
+            await page.wait_for_timeout(1000)
             content = await page.content()
         finally:
             await browser.close()
