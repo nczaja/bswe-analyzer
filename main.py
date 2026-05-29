@@ -1,11 +1,11 @@
 import os
 import re
 import json
-import httpx
 from groq import Groq
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from playwright.async_api import async_playwright
 
 groq_client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
@@ -49,7 +49,7 @@ Regeln:
 - trainStation: Nächster Bahnhof mit Entfernung, null wenn unbekannt
 - rooms: Array von Zimmertypen
 - notes: Max. 120 Zeichen, nur relevante Hinweise
-- photos: Absolute URLs zu Fotos (max. 6), leeres Array wenn keine
+- photos: Absolute URLs zu echten Fotos der Unterkunft (max. 6), leeres Array wenn keine
 
 Seiteninhalt:
 {text}"""
@@ -63,28 +63,39 @@ def extract_text(html: str) -> str:
     return text[:15000]
 
 
+async def fetch_with_playwright(url: str) -> str:
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
+        page = await browser.new_page(
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            )
+        )
+        try:
+            await page.goto(url, wait_until="networkidle", timeout=30000)
+            # Kurz warten damit lazy-loaded Inhalte sichtbar werden
+            await page.wait_for_timeout(2000)
+            content = await page.content()
+        finally:
+            await browser.close()
+        return content
+
+
 @app.post("/analyze-url")
 async def analyze_url(req: UrlRequest):
     url = req.url.strip()
     if not url.startswith("http"):
         raise HTTPException(status_code=400, detail="Ungültige URL")
 
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        )
-    }
     try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=20) as http:
-            response = await http.get(url, headers=headers)
-            response.raise_for_status()
-            html = response.text
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=502, detail=f"Seite nicht erreichbar: {e.response.status_code}")
+        html = await fetch_with_playwright(url)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Fetch fehlgeschlagen: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Seite nicht erreichbar: {str(e)}")
 
     text = extract_text(html)
     prompt = PROMPT_TEMPLATE.replace("{text}", text)
