@@ -67,6 +67,7 @@ async def fetch_with_playwright(url: str) -> str:
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
+            executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", None),
             args=["--no-sandbox", "--disable-dev-shm-usage"],
         )
         page = await browser.new_page(
