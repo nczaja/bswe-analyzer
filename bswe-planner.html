@@ -259,11 +259,11 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 <!-- Identity bar -->
 <div class="identity-bar" :class="me==='admin' ? 'admin-mode' : ''">
   <label>Ich bin:</label>
-  <select x-model="me" @change="onMeChange()">
+  <select @change="me = $event.target.value; onMeChange()">
+    <option value="admin" :selected="me === 'admin'">Admin</option>
     <template x-for="p in allPeople" :key="p.id">
-      <option :value="p.id" x-text="p.name"></option>
+      <option :value="p.id" :selected="me === p.id" x-text="p.name"></option>
     </template>
-    <option value="admin">Admin</option>
   </select>
   <span x-show="me==='admin'" class="admin-badge">⚠ ADMIN-MODUS</span>
   <span x-show="me!=='admin'" class="identity-sep">·</span>
@@ -333,13 +333,21 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div class="active-event-card" x-show="!currentEvent.archived">
     <div>
       <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:4px">Aktives Event</div>
-      <h3 x-text="currentEvent.name"></h3>
+      <template x-if="!editingEventName"><h3 x-text="currentEvent.name"></h3></template>
+      <template x-if="editingEventName">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" x-model="tempEventName" style="font-size:1rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
+          <button class="btn btn-sm btn-primary" @click="currentEvent={...currentEvent,name:tempEventName};editingEventName=false">OK</button>
+          <button class="btn btn-sm btn-ghost" @click="editingEventName=false">✕</button>
+        </div>
+      </template>
       <p x-text="eventParticipants.map(p=>p.name).join(', ')"></p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='dates'">📅 Termine</button>
       <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='venues'">🏡 Unterkünfte</button>
       <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='settlement'">💶 Abrechnung</button>
+      <button x-show="me==='admin' && !editingEventName" class="btn btn-sm" style="background:#f0ede8;color:#555;border:1px solid #ddd" @click="editingEventName=true;tempEventName=currentEvent.name">✏️ Umbenennen</button>
       <button x-show="me==='admin'" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin-left:8px" @click="showDeleteConfirm=true">🗑 Löschen</button>
     </div>
   </div>
@@ -435,7 +443,13 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div class="card">
     <div class="card-header">
       <h2>Wochenend-Termine</h2>
-      <span class="badge badge-green" x-show="finalDate">✅ <span x-text="finalDate"></span></span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="badge badge-green" x-show="finalDate">✅ <span x-text="finalDate"></span></span>
+        <div style="display:flex;gap:4px;font-size:0.75rem">
+          <button class="btn btn-sm" :style="dateSortBy==='votes'?'background:#1a1a1a;color:#fff':''" @click="dateSortBy='votes'">Nach Stimmen</button>
+          <button class="btn btn-sm" :style="dateSortBy==='time'?'background:#1a1a1a;color:#fff':''" @click="dateSortBy='time'">Zeitlich</button>
+        </div>
+      </div>
     </div>
     <div style="overflow-x:auto">
       <table class="vote-grid" style="min-width:530px">
@@ -449,7 +463,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           </tr>
         </thead>
         <tbody>
-          <template x-for="d in dates" :key="d.id">
+          <template x-for="d in sortedDates" :key="d.id">
             <tr :style="finalDateId===d.id?'background:#f0fdf4':''">
               <td style="padding-left:20px">
                 <div class="date-range" x-text="d.label"></div>
@@ -530,7 +544,13 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </span>
   </div>
 
-  <template x-for="v in venues" :key="v.id">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:0.8rem;color:#888">
+    <span>Sortieren:</span>
+    <button class="btn btn-sm" :style="venueSortBy==='votes'?'background:#1a1a1a;color:#fff':''" @click="venueSortBy='votes'">Nach Stimmen</button>
+    <button class="btn btn-sm" :style="venueSortBy==='price'?'background:#1a1a1a;color:#fff':''" @click="venueSortBy='price'">Nach Preis</button>
+  </div>
+
+  <template x-for="v in sortedVenues" :key="v.id">
     <div class="venue-card" :class="v.winner?'winner':''">
       <div class="venue-photos" x-show="v.photos && v.photos.length">
         <template x-for="(ph,idx) in (v.photos||[])" :key="idx">
@@ -620,6 +640,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         <div style="flex:1"></div>
         <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:700" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
         <button x-show="v.winner" class="btn btn-sm btn-ghost" @click="unbookVenue(v.id)">Buchung aufheben</button>
+        <button x-show="me==='admin' && !v.permanent" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="venues=venues.filter(x=>x.id!==v.id)">🗑</button>
         <div class="vote-avatars">
           <template x-for="p in eventParticipants" :key="p.id">
             <span class="vote-avatar" :title="p.name"><span x-text="p.short+' '"></span><span x-text="venueVoteEmoji(v.id,p.id)"></span></span>
@@ -878,6 +899,9 @@ function app() {
     urlInput: '', dupWarning: null, analyzing: false, loadingStep: '',
     lightboxSrc: null,
     coordsCache: {}, geoLoading: {},
+    editingEventName: false, tempEventName: '',
+    venueSortBy: 'votes',
+    dateSortBy: 'votes',
 
     allPeople: [
       { id:'christoph', name:'Christoph', short:'CV', hometown:'' },
@@ -1116,6 +1140,28 @@ function app() {
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
     get bookedVenue(){ return this.venues.find(v=>v.winner)||null; },
+    venueScore(vid){
+      const votes=Object.values(this.venueVotes[vid]||{});
+      return votes.reduce((s,v)=>s+(v==='up'?2:v==='meh'?1:v==='down'?-1:0),0);
+    },
+    get sortedVenues(){
+      return [...this.venues].sort((a,b)=>{
+        if(this.venueSortBy==='votes') return this.venueScore(b.id)-this.venueScore(a.id);
+        if(this.venueSortBy==='price') return (a.price||999999)-(b.price||999999);
+        return 0;
+      });
+    },
+    dateScore(did){
+      const votes=Object.values(this.votes[did]||{});
+      return votes.reduce((s,v)=>s+(v==='yes'?2:v==='maybe'?1:v==='no'?-1:0),0);
+    },
+    get sortedDates(){
+      return [...this.dates].sort((a,b)=>{
+        if(this.dateSortBy==='votes') return this.dateScore(b.id)-this.dateScore(a.id);
+        if(this.dateSortBy==='time') return (a.from||a.label||'').localeCompare(b.from||b.label||'');
+        return 0;
+      });
+    },
     async analyzeUrl(){
       const url=this.urlInput.trim();
       if(!url) return;
