@@ -172,22 +172,13 @@ BGG_BASE = "https://boardgamegeek.com/xmlapi2"
 
 
 async def bgg_fetch(url: str) -> str:
-    """Navigate to BGG XML API URL with real browser to bypass Cloudflare."""
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            executable_path=os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", None),
-            args=["--no-sandbox", "--disable-dev-shm-usage"],
-        )
-        page = await browser.new_page()
-        try:
-            response = await page.goto(url, wait_until="domcontentloaded", timeout=20000)
-            if response and response.status == 202:
-                return "__RETRY__"
-            body = await response.body()
-            return body.decode("utf-8", errors="replace")
-        finally:
-            await browser.close()
+    """Fetch BGG XML API impersonating Chrome TLS fingerprint via curl_cffi."""
+    from curl_cffi.requests import AsyncSession
+    async with AsyncSession() as session:
+        r = await session.get(url, impersonate="chrome120", timeout=15)
+        if r.status_code == 202:
+            return "__RETRY__"
+        return r.text
 
 
 @app.get("/bgg/search")
@@ -195,6 +186,7 @@ async def bgg_search(q: str = Query(..., min_length=1)):
     try:
         url = f"{BGG_BASE}/search?query={q}&type=boardgame"
         xml_text = await bgg_fetch(url)
+        print("BGG response (first 300 chars):", repr(xml_text[:300]))
         root = ET.fromstring(xml_text)
         results = []
         for item in root.findall("item"):
@@ -210,6 +202,7 @@ async def bgg_search(q: str = Query(..., min_length=1)):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback; traceback.print_exc()
         raise HTTPException(status_code=502, detail=f"BGG search error: {type(e).__name__}: {e}")
 
 
