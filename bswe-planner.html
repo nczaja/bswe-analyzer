@@ -829,7 +829,9 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 
 <script>
 // URL des Analyse-Backends:
-const ANALYZER_URL = 'https://bswe-analyzer-production.up.railway.app/analyze-url';
+const ANALYZER_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8080/analyze-url'
+  : 'https://bswe-analyzer-production.up.railway.app/analyze-url';
 
 // ── Supabase-Konfiguration ──────────────────────────────────────────────────
 // 1. Kostenlosen Account anlegen: https://supabase.com
