@@ -1,8 +1,12 @@
 import os
 import re
 import json
+import html as html_lib
+import asyncio
+from xml.etree import ElementTree as ET
 from groq import Groq
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
@@ -14,7 +18,7 @@ app = FastAPI(title="BSWE URL Analyzer")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["POST"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -160,6 +164,132 @@ async def analyze_url(req: UrlRequest):
         result["photos"] = photos
 
     return result
+
+
+BGG_BASE = "https://boardgamegeek.com/xmlapi2"
+
+
+@app.get("/bgg/search")
+async def bgg_search(q: str = Query(..., min_length=1)):
+    async with httpx.AsyncClient() as client:
+        r = await client.get(f"{BGG_BASE}/search", params={"query": q, "type": "boardgame"},
+                             timeout=10, follow_redirects=True)
+    root = ET.fromstring(r.text)
+    results = []
+    for item in root.findall("item"):
+        name_el = item.find("name[@type='primary']") or item.find("name")
+        year_el = item.find("yearpublished")
+        results.append({
+            "id": item.get("id"),
+            "name": name_el.get("value") if name_el is not None else "?",
+            "year": year_el.get("value") if year_el is not None else None,
+        })
+    results.sort(key=lambda x: int(x["year"] or 0), reverse=True)
+    return results[:15]
+
+
+@app.get("/bgg/thing")
+async def bgg_thing(id: str = Query(...)):
+    for attempt in range(3):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{BGG_BASE}/thing", params={"id": id, "stats": 1, "videos": 1},
+                                 timeout=15, follow_redirects=True)
+        if r.status_code == 202:
+            await asyncio.sleep(2)
+            continue
+        break
+
+    root = ET.fromstring(r.text)
+    item = root.find("item")
+    if item is None:
+        raise HTTPException(status_code=404, detail="Spiel nicht gefunden")
+
+    name_el = item.find("name[@type='primary']")
+    name = name_el.get("value") if name_el is not None else "?"
+
+    desc_el = item.find("description")
+    desc = html_lib.unescape(desc_el.text or "") if desc_el is not None else ""
+    if len(desc) > 420:
+        desc = desc[:420].rsplit(" ", 1)[0] + "…"
+
+    def img(tag):
+        t = (item.findtext(tag) or "").strip()
+        return ("https:" + t) if t.startswith("//") else t
+
+    def intval(tag):
+        el = item.find(tag)
+        if el is None:
+            return None
+        try:
+            return int(el.get("value", 0))
+        except Exception:
+            return None
+
+    minp = intval("minplayers")
+    maxp = intval("maxplayers")
+    mintime = intval("minplaytime") or 0
+    maxtime = intval("maxplaytime") or 0
+    playtime = maxtime or mintime
+    duration_cat = "kurz" if playtime <= 90 else ("mittel" if playtime <= 180 else "lang")
+
+    # Best player count from community poll
+    best_players = None
+    poll = item.find("poll[@name='suggested_numplayers']")
+    if poll is not None:
+        best_count = 0
+        for results_el in poll.findall("results"):
+            num = results_el.get("numplayers", "")
+            if "+" in num:
+                continue
+            for res in results_el.findall("result"):
+                if res.get("value") == "Best":
+                    votes = int(res.get("numvotes", 0))
+                    if votes > best_count:
+                        best_count = votes
+                        best_players = num
+
+    # Rating
+    rating = None
+    avg_el = item.find("statistics/ratings/average")
+    if avg_el is not None:
+        try:
+            rating = round(float(avg_el.get("value", 0)), 1)
+        except Exception:
+            pass
+
+    # Instructional video preferred
+    video_url = None
+    videos_el = item.find("videos")
+    if videos_el is not None:
+        first = None
+        for v in videos_el.findall("video"):
+            link = v.get("link", "")
+            cat = v.get("category", "").lower()
+            if not first:
+                first = link
+            if cat == "instructional":
+                video_url = link
+                break
+        if not video_url:
+            video_url = first
+
+    return {
+        "id": id,
+        "name": name,
+        "description": desc,
+        "thumbnail": img("thumbnail"),
+        "image": img("image"),
+        "minPlayers": minp,
+        "maxPlayers": maxp,
+        "bestPlayers": best_players,
+        "minPlaytime": mintime,
+        "maxPlaytime": maxtime,
+        "durationCat": duration_cat,
+        "rating": rating,
+        "videoUrl": video_url,
+        "rulesUrl": f"https://boardgamegeek.com/boardgame/{id}/files",
+        "bggUrl": f"https://boardgamegeek.com/boardgame/{id}",
+    }
 
 
 @app.get("/health")

@@ -876,7 +876,8 @@ async function supabasePut(data) {
 
 // Felder die persistent gespeichert werden:
 const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
-  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses'];
+  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
+  'games','gameVotes'];
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -902,6 +903,16 @@ function app() {
     editingEventName: false, tempEventName: '',
     venueSortBy: 'votes',
     dateSortBy: 'votes',
+
+    // ── Games ──
+    games: [],
+    gameVotes: {},
+    gameQuery: '',
+    gameSearchResults: [],
+    gameSearchLoading: false,
+    gameAddLoading: false,
+    gameSortBy: 'votes',
+    gameSortDir: 'desc',
 
     allPeople: [
       { id:'christoph', name:'Christoph', short:'CV', hometown:'' },
@@ -1237,6 +1248,66 @@ function app() {
       this.settlement=tr;
     },
     allSettled(){ return this.settlement.length>0&&this.settlement.every(t=>t.doneSender&&t.doneReceiver); },
+    // ── Games logic ──
+    get sortedGames() {
+      const arr = [...this.games];
+      const dir = this.gameSortDir === 'desc' ? -1 : 1;
+      arr.sort((a, b) => {
+        switch (this.gameSortBy) {
+          case 'votes': return (this.gameVoteScore(b.id) - this.gameVoteScore(a.id)) * dir;
+          case 'rating': return ((b.rating||0) - (a.rating||0)) * dir;
+          case 'duration': { const dm={kurz:1,mittel:2,lang:3}; return ((dm[a.durationCat]||0)-(dm[b.durationCat]||0))*dir; }
+          case 'name': return a.name.localeCompare(b.name) * dir;
+        }
+        return 0;
+      });
+      return arr;
+    },
+    gameVoteScore(gameId) {
+      return Object.values(this.gameVotes[gameId]||{}).reduce((s,v)=>s+(v==='vollbock'?2:v==='bock'?1:v==='keinbock'?-1:0),0);
+    },
+    gameVoteCount(gameId, voteType) {
+      return Object.values(this.gameVotes[gameId]||{}).filter(x=>x===voteType).length;
+    },
+    async searchBGG() {
+      if (!this.gameQuery.trim()) return;
+      this.gameSearchLoading = true;
+      this.gameSearchResults = [];
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url','');
+        const r = await fetch(`${base}/bgg/search?q=${encodeURIComponent(this.gameQuery)}`);
+        this.gameSearchResults = await r.json();
+      } catch(e) { console.warn('BGG search error', e); }
+      this.gameSearchLoading = false;
+    },
+    async addGame(bggId) {
+      if (this.games.find(g => g.id === bggId)) { this.gameSearchResults=[]; return; }
+      this.gameAddLoading = bggId;
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url','');
+        const r = await fetch(`${base}/bgg/thing?id=${bggId}`);
+        const data = await r.json();
+        this.games.push({...data, addedBy: this.me, addedAt: new Date().toISOString()});
+        this.gameSearchResults = [];
+        this.gameQuery = '';
+        scheduleSave(this);
+      } catch(e) { console.warn('BGG thing error', e); }
+      this.gameAddLoading = false;
+    },
+    removeGame(gameId) {
+      this.games = this.games.filter(g => g.id !== gameId);
+      const v = {...this.gameVotes}; delete v[gameId]; this.gameVotes = v;
+      scheduleSave(this);
+    },
+    setGameVote(gameId, vote) {
+      if (!this.gameVotes[gameId]) this.gameVotes[gameId] = {};
+      const cur = this.gameVotes[gameId][this.me];
+      const v = {...this.gameVotes};
+      if (cur === vote) { delete v[gameId][this.me]; } else { v[gameId] = {...v[gameId], [this.me]: vote}; }
+      this.gameVotes = v;
+      scheduleSave(this);
+    },
+
     showDeleteConfirm: false,
     deleteEvent(){
       this.currentEvent={ name:'', participants:[], dates:[], bookedVenueId:null, expenses:[], archived:true };
@@ -1264,11 +1335,122 @@ function app() {
 
 <!-- ══════════════════════════ SPIELAUSWAHL ══ -->
 <div class="content" x-show="tab==='games'">
-  <div class="card" style="text-align:center;padding:60px 20px;color:#aaa">
-    <div style="font-size:3rem;margin-bottom:12px">🎲</div>
-    <h2 style="font-size:1.2rem;font-weight:700;color:#555;margin-bottom:6px">Spielauswahl</h2>
-    <p style="font-size:0.88rem">🚧 Under Construction</p>
+
+  <!-- Spiel hinzufügen -->
+  <div class="card" style="padding:16px 18px;margin-bottom:14px">
+    <div class="section-label">Spiel vorschlagen</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" class="input" placeholder="Spieltitel eingeben…"
+             x-model="gameQuery"
+             @keydown.enter="searchBGG()"
+             @keydown.escape="gameSearchResults=[]"
+             style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;outline:none">
+      <button class="btn" @click="searchBGG()" :disabled="gameSearchLoading"
+              style="white-space:nowrap">
+        <span x-show="!gameSearchLoading">🔍 Suchen</span>
+        <span x-show="gameSearchLoading">…</span>
+      </button>
+    </div>
+    <!-- Suchergebnisse -->
+    <div x-show="gameSearchResults.length > 0" @click.away="gameSearchResults=[]"
+         style="border:1px solid #e8e6e0;border-radius:8px;margin-top:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
+      <template x-for="r in gameSearchResults" :key="r.id">
+        <div @click="addGame(r.id)"
+             :style="gameAddLoading===r.id ? 'opacity:0.4;pointer-events:none' : 'cursor:pointer'"
+             style="padding:9px 14px;border-bottom:1px solid #f0ede8;display:flex;justify-content:space-between;align-items:center;transition:background 0.1s"
+             @mouseenter="$el.style.background='#faf9f7'" @mouseleave="$el.style.background=''">
+          <span style="font-size:0.87rem;font-weight:500" x-text="r.name"></span>
+          <span style="font-size:0.78rem;color:#bbb" x-text="r.year||''"></span>
+        </div>
+      </template>
+    </div>
+    <div x-show="gameAddLoading" style="font-size:0.8rem;color:#999;margin-top:8px">
+      ⏳ Lade Spielinfos von BoardGameGeek…
+    </div>
   </div>
+
+  <!-- Sortierleiste -->
+  <div x-show="games.length > 0" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+    <span class="section-label" style="margin:0 6px 0 0">Sortieren:</span>
+    <template x-for="opt in [{k:'votes',l:'Votes'},{k:'rating',l:'BGG-Wertung'},{k:'duration',l:'Länge'},{k:'name',l:'A–Z'}]" :key="opt.k">
+      <button class="btn btn-sm"
+              :style="gameSortBy===opt.k ? 'background:#1a1a1a;color:#fff;border-color:#1a1a1a' : ''"
+              @click="gameSortBy===opt.k ? gameSortDir=(gameSortDir==='desc'?'asc':'desc') : (gameSortBy=opt.k, gameSortDir='desc')">
+        <span x-text="opt.l"></span>
+        <span x-show="gameSortBy===opt.k" x-text="gameSortDir==='desc'?'↓':'↑'" style="margin-left:3px"></span>
+      </button>
+    </template>
+    <span style="margin-left:auto;font-size:0.78rem;color:#bbb" x-text="games.length + ' Spiel' + (games.length===1?'':'e')"></span>
+  </div>
+
+  <!-- Leer-State -->
+  <div x-show="games.length === 0" class="card" style="text-align:center;padding:60px 20px;color:#aaa">
+    <div style="font-size:2.5rem;margin-bottom:10px">🎲</div>
+    <p style="font-size:0.88rem">Noch keine Spiele vorgeschlagen.<br>Einfach oben suchen und hinzufügen!</p>
+  </div>
+
+  <!-- Spielkarten -->
+  <template x-for="game in sortedGames" :key="game.id">
+    <div class="card" style="display:flex;gap:14px;padding:14px 16px;margin-bottom:10px">
+      <!-- Cover -->
+      <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block">
+        <img :src="game.thumbnail" alt=""
+             style="width:84px;height:84px;object-fit:cover;border-radius:8px;background:#f0ede8;display:block"
+             @error="$el.parentElement.style.display='none'">
+      </a>
+      <!-- Info -->
+      <div style="flex:1;min-width:0">
+        <!-- Titel + Badges -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
+          <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
+                :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
+                x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+          <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
+        </div>
+        <!-- Spieler & Zeit -->
+        <div style="font-size:0.79rem;color:#999;margin-bottom:5px">
+          <span x-show="game.minPlayers">
+            👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
+            <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
+          </span>
+          <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
+            🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
+          </span>
+        </div>
+        <!-- Beschreibung -->
+        <p x-show="game.description" x-text="game.description"
+           style="font-size:0.8rem;color:#666;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
+        <!-- Links -->
+        <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
+          <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
+          <a :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
+          <a :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
+        </div>
+        <!-- Votes -->
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <template x-for="opt in [{v:'vollbock',l:'🤩 Voll Bock'},{v:'bock',l:'😊 Bock'},{v:'keinbock',l:'😐 Kein Bock'}]" :key="opt.v">
+            <button class="btn btn-sm"
+                    :style="(gameVotes[game.id]||{})[me]===opt.v
+                      ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
+                        :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
+                        :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
+                    @click="setGameVote(game.id, opt.v)">
+              <span x-text="opt.l"></span>
+              <span x-show="gameVoteCount(game.id, opt.v) > 0"
+                    x-text="' · '+gameVoteCount(game.id, opt.v)"
+                    style="opacity:0.6;font-size:0.85em"></span>
+            </button>
+          </template>
+          <!-- Admin: löschen -->
+          <button x-show="me==='nico'" class="btn btn-sm"
+                  style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
+                  @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
 </div>
 
 <!-- ══════════════════════════ ESSENSPLANUNG ══ -->
