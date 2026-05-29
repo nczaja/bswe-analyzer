@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BSWE Planner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; min-height: 100vh; }
+
+/* ── LANDING ── */
+.landing { position: fixed; inset: 0; background: #f5f4f0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; }
+.landing-logo { font-size: 2.2rem; margin-bottom: 10px; }
+.landing-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; }
+.landing-sub { color: #999; margin-top: 6px; font-size: 0.9rem; }
+.landing-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 440px; margin-top: 32px; }
+.landing-btn { padding: 16px 20px; min-width: 130px; border-radius: 12px; border: 2px solid #1a1a1a; background: #fff; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-align: center; }
+.landing-btn:hover { background: #1a1a1a; color: #fff; }
+.landing-confirm { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 28px; }
+.landing-confirm-name { font-size: 1.15rem; color: #555; text-align: center; }
+.landing-confirm-name strong { color: #1a1a1a; }
+.landing-yes { padding: 14px 36px; border-radius: 10px; background: #1a1a1a; color: #fff; border: 2px solid #1a1a1a; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.landing-yes:hover { background: #333; }
+.landing-other { padding: 14px 24px; border-radius: 10px; background: #fff; color: #555; border: 2px solid #e0ddd8; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.landing-other:hover { border-color: #aaa; color: #1a1a1a; }
+.landing-admin { background: none; border: none; color: #ccc; font-size: 0.77rem; cursor: pointer; margin-top: 28px; text-decoration: underline; }
+.landing-admin:hover { color: #888; }
+
+/* ── APP CHROME ── */
+.app-header { background: #1a1a1a; color: #f5f4f0; padding: 16px 24px; display: flex; align-items: baseline; gap: 12px; }
+.app-header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
+.app-header span { font-size: 0.82rem; opacity: 0.45; }
+
+.identity-bar { background: #fff; border-bottom: 1px solid #e8e6e0; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: background 0.2s; }
+.identity-bar.admin-mode { background: #fffbeb; border-bottom-color: #e8b84b; }
+.identity-bar label { font-size: 0.78rem; color: #888; }
+.identity-bar select { font-size: 0.84rem; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; background: #fff; cursor: pointer; }
+.identity-bar input[type=text] { font-size: 0.84rem; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; background: #fff; }
+.identity-sep { color: #e0ddd8; margin: 0 2px; }
+.admin-badge { background: #fff3cd; color: #8a5800; border: 1px solid #e8b84b; border-radius: 6px; padding: 3px 9px; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.03em; }
+.switch-btn { font-size: 0.75rem; color: #aaa; background: none; border: 1px solid #e0ddd8; border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+.switch-btn:hover { border-color: #aaa; color: #555; }
+
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #e8e6e0; padding: 0 16px; overflow-x: auto; }
+.tab { padding: 13px 16px; font-size: 0.82rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: #888; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+.tab:hover:not(.tab-disabled) { color: #1a1a1a; }
+.tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+.tab-disabled { opacity: 0.35; cursor: not-allowed !important; }
+
+.content { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #e8e6e0; overflow: hidden; margin-bottom: 16px; }
+.card-header { padding: 14px 20px; border-bottom: 1px solid #f0ede8; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-body { padding: 20px; }
+
+.section-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #aaa; margin-bottom: 12px; }
+
+/* Vote table */
+.vote-grid { width: 100%; border-collapse: collapse; }
+.vote-grid th { text-align: center; font-size: 0.7rem; font-weight: 600; color: #999; padding: 6px 8px; }
+.vote-grid th.left { text-align: left; }
+.vote-grid td { padding: 10px 8px; border-top: 1px solid #f5f3f0; }
+.vote-grid tr:hover td { background: #fafaf8; }
+.vote-btn { display: inline-flex; align-items: center; justify-content: center; width: 29px; height: 29px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; font-size: 0.82rem; transition: all 0.12s; background: #f5f4f0; }
+.vote-btn:hover:not(:disabled) { transform: scale(1.18); }
+.vote-btn:disabled { opacity: 0.4; cursor: default; }
+.vote-btn.yes { background: #e0f5e0; border-color: #6abf6a; }
+.vote-btn.maybe { background: #fff5d6; border-color: #e8b84b; }
+.vote-btn.no { background: #ffe0e0; border-color: #e06060; }
+.vote-btn.active-yes { background: #5cb85c; border-color: #4cae4c; color: #fff; }
+.vote-btn.active-maybe { background: #f0ad4e; border-color: #eea236; }
+.vote-btn.active-no { background: #d9534f; border-color: #c9302c; color: #fff; }
+.date-range { font-size: 0.88rem; font-weight: 600; }
+.date-sub { font-size: 0.7rem; color: #aaa; margin-top: 1px; }
+.vorbehalt-tag { font-size: 0.66rem; color: #a07000; background: #fff3cd; border-radius: 4px; padding: 1px 5px; }
+.vote-summary { display: flex; gap: 4px; }
+.vs-pill { font-size: 0.68rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+.vs-yes { background: #e0f5e0; color: #2d7a2d; }
+.vs-maybe { background: #fff5d6; color: #8a6000; }
+.vs-no { background: #ffe0e0; color: #a33; }
+
+.badge { font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.04em; }
+.badge-green { background: #e0f5e0; color: #2a7a2a; }
+.badge-yellow { background: #fff5d6; color: #8a6000; }
+.badge-blue { background: #e0eeff; color: #2a5aaa; }
+.badge-red { background: #ffe0e0; color: #a33; }
+
+.add-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding: 14px 20px; background: #fafaf8; border-top: 1px solid #f0ede8; }
+.add-form label { font-size: 0.7rem; color: #999; display: block; margin-bottom: 3px; }
+
+.btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.btn-primary { background: #1a1a1a; color: #fff; }
+.btn-primary:hover { background: #333; }
+.btn-primary:disabled { background: #bbb; cursor: not-allowed; }
+.btn-sm { padding: 5px 11px; font-size: 0.75rem; }
+.btn-ghost { background: transparent; color: #888; border: 1px solid #e0ddd8; }
+.btn-ghost:hover { border-color: #aaa; color: #333; }
+.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+input[type=text], input[type=url], input[type=date], input[type=number], textarea, select.inp {
+  border: 1px solid #e0ddd8; border-radius: 7px; padding: 7px 10px;
+  font-size: 0.84rem; background: #fff; font-family: inherit; transition: border-color 0.15s;
+}
+input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a1a1a; }
+
+/* Venue cards */
+.venue-card { border: 1px solid #e8e6e0; border-radius: 12px; overflow: hidden; margin-bottom: 14px; background: #fff; }
+.venue-card.winner { border-color: #5cb85c; }
+.venue-photos { display: flex; gap: 6px; overflow-x: auto; padding: 14px 16px 10px; background: #f8f7f4; }
+.venue-photo { width: 140px; height: 90px; object-fit: cover; border-radius: 7px; flex-shrink: 0; cursor: pointer; transition: opacity 0.15s; }
+.venue-photo:hover { opacity: 0.88; }
+.venue-photo-placeholder { width: 120px; height: 80px; border-radius: 7px; flex-shrink: 0; background: #e8e6e0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.venue-body { padding: 14px 16px; }
+.venue-title { font-weight: 700; font-size: 1.02rem; }
+.venue-link { font-size: 0.76rem; color: #5a8fd4; text-decoration: none; }
+.venue-link:hover { text-decoration: underline; }
+.venue-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
+.pill { font-size: 0.73rem; border-radius: 6px; padding: 3px 9px; background: #f0ede8; color: #444; }
+.pill.good { background: #e0f5e0; color: #2a7a2a; }
+.pill.bad { background: #ffe0e0; color: #a33; }
+.pill.info { background: #e0eeff; color: #2a5aaa; }
+.rooms-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.room-badge { font-size: 0.72rem; background: #f5f4f0; border: 1px solid #e8e6e0; border-radius: 6px; padding: 3px 10px; }
+.venue-votes { border-top: 1px solid #f0ede8; padding: 12px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.v-vote-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 20px; border: 2px solid #e8e6e0; cursor: pointer; font-size: 0.79rem; font-weight: 600; transition: all 0.12s; background: #fff; }
+.v-vote-btn:hover { border-color: #bbb; }
+.v-vote-btn.active-up { background: #e0f5e0; border-color: #5cb85c; color: #2a7a2a; }
+.v-vote-btn.active-down { background: #ffe0e0; border-color: #d9534f; color: #a33; }
+.v-vote-btn.active-meh { background: #f0ede8; border-color: #ccc; color: #555; }
+.vote-avatars { display: flex; gap: 8px; flex-wrap: wrap; margin-left: 8px; }
+.vote-avatar { font-size: 0.72rem; color: #888; }
+
+/* Travel info */
+.travel-box { margin: 8px 0 4px; padding: 9px 12px; background: #f5f4f0; border-radius: 8px; font-size: 0.78rem; color: #555; }
+.travel-box .tlabel { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; margin-bottom: 5px; }
+.travel-items { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* URL input */
+.url-input-area { padding: 18px 20px; }
+.url-row { display: flex; gap: 8px; }
+.url-row input { flex: 1; font-size: 0.9rem; padding: 10px 14px; }
+.loading-card { border: 1px dashed #d0cdc8; border-radius: 12px; padding: 28px; text-align: center; margin: 0 0 14px; background: #fafaf8; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #e0ddd8; border-top-color: #1a1a1a; border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Booking */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .info-grid { grid-template-columns: 1fr; } }
+.info-item { background: #fafaf8; border-radius: 8px; padding: 13px; }
+.info-item .lbl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 4px; }
+.info-item .val { font-size: 0.92rem; font-weight: 600; }
+.arrival-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.arrival-name { font-size: 0.84rem; font-weight: 600; width: 90px; flex-shrink: 0; }
+
+/* Übersicht */
+.event-card { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 20px; transition: border-color 0.15s; }
+.event-card.archived { opacity: 0.6; }
+.event-year { font-size: 0.72rem; color: #aaa; font-weight: 700; }
+.event-name { font-size: 1rem; font-weight: 700; }
+.event-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+.stat-block { text-align: center; flex-shrink: 0; }
+.stat-num { font-size: 1.1rem; font-weight: 700; }
+.stat-label { font-size: 0.66rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.07em; }
+.avg-bar { background: #f0ede8; border-radius: 8px; height: 6px; margin-top: 4px; overflow: hidden; }
+.avg-fill { background: #1a1a1a; height: 100%; border-radius: 8px; transition: width 0.4s; }
+.active-event-card { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.active-event-card h3 { font-size: 1rem; font-weight: 700; }
+.active-event-card p { font-size: 0.8rem; opacity: 0.55; margin-top: 2px; }
+
+/* Abrechnung */
+.expense-table { width: 100%; border-collapse: collapse; }
+.expense-table th { font-size: 0.7rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 10px; text-align: left; border-bottom: 1px solid #f0ede8; }
+.expense-table td { padding: 8px 10px; border-bottom: 1px solid #f8f6f3; font-size: 0.84rem; }
+.expense-table tr:last-child td { border-bottom: none; }
+.expense-table tr:hover td { background: #fafaf8; }
+.cat-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.cat-einkauf   { background: #e0eeff; color: #2a5aaa; }
+.cat-anreise   { background: #f0ede8; color: #666; }
+.cat-haus      { background: #e0f5e0; color: #2a7a2a; }
+.cat-sonstiges { background: #fff5d6; color: #8a6000; }
+.settlement-table { width: 100%; border-collapse: collapse; }
+.settlement-table th { font-size: 0.7rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 12px; text-align: left; }
+.settlement-table td { padding: 10px 12px; border-top: 1px solid #f0ede8; font-size: 0.88rem; }
+.transfer-amount { font-size: 1rem; font-weight: 700; }
+.settled-check { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; cursor: pointer; }
+.balance-grid { display: grid; gap: 8px; }
+.balance-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; background: #fafaf8; border: 1px solid #f0ede8; }
+.balance-name { font-size: 0.88rem; font-weight: 600; }
+.balance-val { font-size: 1rem; font-weight: 700; }
+.balance-pos { color: #2a7a2a; }
+.balance-neg { color: #d9534f; }
+.balance-zero { color: #aaa; }
+
+/* Participant toggles */
+.participant-toggle { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; border: 2px solid #e8e6e0; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.12s; background: #fff; margin: 4px; }
+.participant-toggle.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.participant-toggle:hover { border-color: #888; }
+
+/* Archive banner */
+.archive-banner { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.archive-banner h3 { font-size: 1rem; font-weight: 700; }
+.archive-banner p { font-size: 0.82rem; opacity: 0.65; margin-top: 3px; }
+
+/* Add-person sub-form */
+.add-person-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0ede8; display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.add-person-form label { font-size: 0.7rem; color: #999; display: block; margin-bottom: 2px; }
+
+h2 { font-size: 1.02rem; font-weight: 700; }
+[x-cloak] { display: none !important; }
+</style>
+</head>
+<body x-data="app()" x-init="init()">
+
+<!-- ══════════════════════════════════ LANDING / IDENTITY SCREEN ══ -->
+<div class="landing" x-show="!identityConfirmed" x-cloak>
+  <div class="landing-logo">🎲</div>
+  <div class="landing-title">BSWE Planner</div>
+  <div class="landing-sub">Brettspielwochenende</div>
+
+  <!-- Return-visit: "Bist du X?" -->
+  <div x-show="savedIdentity" style="text-align:center;margin-top:20px">
+    <p class="landing-confirm-name" style="margin-bottom:20px">
+      Willkommen zurück! Bist du <strong x-text="peopleName(savedIdentity)"></strong>?
+    </p>
+    <div class="landing-confirm">
+      <button class="landing-yes" @click="confirmIdentity(savedIdentity)">Ja, weiter →</button>
+      <button class="landing-other" @click="savedIdentity = null">Ich bin jemand anderes</button>
+    </div>
+  </div>
+
+  <!-- First visit: participant grid -->
+  <div x-show="!savedIdentity" style="text-align:center">
+    <p style="color:#999;margin-top:20px;font-size:0.88rem">
+      <span x-show="!currentEvent.archived">Wer bist du?</span>
+      <span x-show="currentEvent.archived">Kein aktives Event — meld dich als Admin an.</span>
+    </p>
+    <div class="landing-grid" x-show="!currentEvent.archived">
+      <template x-for="p in landingParticipants()" :key="p.id">
+        <button class="landing-btn" @click="confirmIdentity(p.id)" x-text="p.name"></button>
+      </template>
+    </div>
+    <div style="margin-top:28px" x-show="currentEvent.archived">
+      <button class="landing-yes" @click="confirmIdentity('admin')">Als Admin fortfahren</button>
+    </div>
+    <button class="landing-admin" @click="confirmIdentity('admin')" x-show="!currentEvent.archived">
+      Als Admin fortfahren
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ MAIN APP ══ -->
+<div x-show="identityConfirmed" x-cloak>
+
+<div class="app-header">
+  <h1>🎲 BSWE Planner</h1>
+  <span>Brettspielwochenende</span>
+</div>
+
+<!-- Identity bar -->
+<div class="identity-bar" :class="me==='admin' ? 'admin-mode' : ''">
+  <label>Ich bin:</label>
+  <select x-model="me" @change="onMeChange()">
+    <template x-for="p in allPeople" :key="p.id">
+      <option :value="p.id" x-text="p.name"></option>
+    </template>
+    <option value="admin">Admin</option>
+  </select>
+  <span x-show="me==='admin'" class="admin-badge">⚠ ADMIN-MODUS</span>
+  <span x-show="me!=='admin'" class="identity-sep">·</span>
+  <template x-if="me!=='admin'">
+    <span style="display:flex;align-items:center;gap:8px">
+      <label>Heimatort:</label>
+      <input type="text" :value="myPerson()?.hometown || ''"
+        @change="updateHometown(me, $event.target.value)"
+        placeholder="z.B. Hamburg" style="width:140px"
+        title="Für Anreise-Berechnung">
+    </span>
+  </template>
+  <button class="switch-btn" @click="switchIdentity()">Wechseln</button>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab" :class="{active: tab==='overview'}" @click="tab='overview'">🗂 Übersicht</div>
+  <div class="tab"
+    :class="{active: tab==='dates', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='dates'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">📅 Terminfindung</div>
+  <div class="tab"
+    :class="{active: tab==='venues', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='venues'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🏡 Unterkünfte</div>
+  <div class="tab"
+    :class="{active: tab==='booking', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='booking'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🔑 Buchung</div>
+  <div class="tab"
+    :class="{active: tab==='games', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='games'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🎲 Spielauswahl</div>
+  <div class="tab"
+    :class="{active: tab==='food', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='food'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🍽 Essensplanung</div>
+  <div class="tab"
+    :class="{active: tab==='settlement', 'tab-disabled': currentEvent.archived}"
+    @click="if(!currentEvent.archived) tab='settlement'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : ''">💶 Abrechnung</div>
+</div>
+
+<!-- ══════════════════════════ ÜBERSICHT ══ -->
+<div class="content" x-show="tab==='overview'">
+  <p class="section-label">Alle Events — abgeschlossen und laufend.</p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
+      <div style="padding:12px;border-right:1px solid #f0ede8">
+        <div class="stat-num" x-text="pastEvents.length"></div>
+        <div class="stat-label">Events</div>
+      </div>
+      <div style="padding:12px;border-right:1px solid #f0ede8">
+        <div class="stat-num" x-text="'Ø '+avgCostPerPerson()+'€'"></div>
+        <div class="stat-label">pro Person/Event</div>
+      </div>
+      <div style="padding:12px">
+        <div class="stat-num" x-text="totalSpent()+'€'"></div>
+        <div class="stat-label">Gesamt ausgegeben</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aktives Event -->
+  <div class="active-event-card" x-show="!currentEvent.archived">
+    <div>
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:4px">Aktives Event</div>
+      <h3 x-text="currentEvent.name"></h3>
+      <p x-text="eventParticipants.map(p=>p.name).join(', ')"></p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='dates'">📅 Termine</button>
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='venues'">🏡 Unterkünfte</button>
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='settlement'">💶 Abrechnung</button>
+      <button x-show="me==='admin'" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin-left:8px" @click="showDeleteConfirm=true">🗑 Löschen</button>
+    </div>
+  </div>
+
+  <!-- Teilnehmer des aktiven Events -->
+  <div class="card" x-show="!currentEvent.archived">
+    <div class="card-header">
+      <h2>👥 Teilnehmer</h2>
+      <span class="badge badge-blue" x-text="currentParticipantIds.length+' Personen'"></span>
+    </div>
+    <div class="card-body" style="padding:14px 20px">
+      <template x-for="p in allPeople" :key="p.id">
+        <span class="participant-toggle" :class="isParticipant(p.id)?'active':''" @click="toggleParticipant(p.id)">
+          <span x-text="p.name"></span>
+          <span x-show="p.hometown" style="font-size:0.65rem;opacity:0.7" x-text="' · '+p.hometown"></span>
+        </span>
+      </template>
+      <div class="add-person-form">
+        <div><label>Name</label><input type="text" x-model="newPerson.name" style="width:130px" placeholder="Vorname Nachname"></div>
+        <div><label>Kürzel</label><input type="text" x-model="newPerson.short" style="width:52px" placeholder="AB"></div>
+        <div><label>Heimatort</label><input type="text" x-model="newPerson.hometown" style="width:130px" placeholder="z.B. Hamburg"></div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end" @click="addPerson(true)" :disabled="!newPerson.name">+ Person</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Past events list -->
+  <template x-for="ev in pastEvents" :key="ev.id">
+    <div class="event-card archived">
+      <div style="flex:1">
+        <div class="event-year" x-text="ev.year"></div>
+        <div class="event-name" x-text="ev.name"></div>
+        <div class="event-meta" x-text="(ev.location?ev.location+' · ':'')+ev.participants.join(', ')"></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-num" x-text="ev.costPerPerson+'€'"></div>
+        <div class="stat-label">pro Person</div>
+        <div class="avg-bar" style="width:80px;margin:4px auto 0"><div class="avg-fill" :style="'width:'+Math.min(100,ev.costPerPerson/3)+'%'"></div></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-num" x-text="ev.total+'€'"></div>
+        <div class="stat-label">Gesamt</div>
+      </div>
+      <span class="badge badge-green">Archiviert</span>
+    </div>
+  </template>
+
+  <!-- Neues Event — nur für Admin, nur wenn kein aktives Event -->
+  <div class="card" x-show="currentEvent.archived && me==='admin'" style="margin-top:8px">
+    <div class="card-header"><h2>+ Neues Event anlegen</h2></div>
+    <div class="card-body">
+      <div>
+        <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:4px">Arbeitstitel</label>
+        <input type="text" x-model="newEvent.name" style="width:100%;max-width:360px" placeholder="z.B. BSWE 2027">
+      </div>
+      <div style="margin-top:14px">
+        <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px">Wer ist dabei?</label>
+        <div>
+          <template x-for="p in allPeople" :key="p.id">
+            <span class="participant-toggle" :class="newEvent.participants.includes(p.id)?'active':''" @click="toggleNewEventParticipant(p.id)">
+              <span x-text="p.name"></span>
+              <span x-show="p.hometown" style="font-size:0.65rem;opacity:0.6" x-text="' · '+p.hometown"></span>
+            </span>
+          </template>
+        </div>
+        <div class="add-person-form">
+          <div><label>Name</label><input type="text" x-model="newPerson.name" style="width:130px" placeholder="Vorname Nachname"></div>
+          <div><label>Kürzel</label><input type="text" x-model="newPerson.short" style="width:52px" placeholder="AB"></div>
+          <div><label>Heimatort</label><input type="text" x-model="newPerson.hometown" style="width:130px" placeholder="z.B. Hamburg"></div>
+          <button class="btn btn-ghost btn-sm" style="align-self:flex-end" @click="addPerson(true)" :disabled="!newPerson.name">+ Person</button>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" @click="createEvent()" :disabled="!newEvent.name">Event anlegen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-admin, event archived -->
+  <div x-show="currentEvent.archived && me!=='admin'" style="text-align:center;padding:20px;font-size:0.83rem;color:#aaa;border:1px dashed #e0ddd8;border-radius:12px;margin-top:8px">
+    Kein aktives Event. Der Admin kann ein neues anlegen.
+  </div>
+
+  <!-- Active event, non-admin: small note -->
+  <div x-show="!currentEvent.archived" style="font-size:0.75rem;color:#ccc;text-align:center;margin-top:4px">
+    Ein neues Event kann erst angelegt werden, wenn dieses archiviert ist.
+  </div>
+</div>
+
+<!-- ══════════════════════════ DATES ══ -->
+<div class="content" x-show="tab==='dates'">
+  <p class="section-label">Wann fahren wir? Nur deine eigene Zeile ist klickbar.</p>
+  <div class="card">
+    <div class="card-header">
+      <h2>Wochenend-Termine</h2>
+      <span class="badge badge-green" x-show="finalDate">✅ <span x-text="finalDate"></span></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="vote-grid" style="min-width:530px">
+        <thead>
+          <tr>
+            <th class="left" style="padding-left:20px">Wochenende</th>
+            <template x-for="p in eventParticipants" :key="p.id">
+              <th x-text="p.short" :title="p.name"></th>
+            </template>
+            <th>Stand</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="d in dates" :key="d.id">
+            <tr :style="finalDateId===d.id?'background:#f0fdf4':''">
+              <td style="padding-left:20px">
+                <div class="date-range" x-text="d.label"></div>
+                <div class="date-sub" x-text="d.sub"></div>
+              </td>
+              <template x-for="p in eventParticipants" :key="p.id">
+                <td style="text-align:center">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                    <div style="display:flex;gap:3px">
+                      <button class="vote-btn" :class="getVote(d.id,p.id)==='yes'?'active-yes':'yes'" :disabled="p.id!==me" @click="setVote(d.id,p.id,'yes')" title="Ja">✓</button>
+                      <button class="vote-btn" :class="getVote(d.id,p.id)==='maybe'?'active-maybe':'maybe'" :disabled="p.id!==me" @click="setVote(d.id,p.id,'maybe')" title="Vorbehalt">~</button>
+                      <button class="vote-btn" :class="getVote(d.id,p.id)==='no'?'active-no':'no'" :disabled="p.id!==me" @click="setVote(d.id,p.id,'no')" title="Nein">✗</button>
+                    </div>
+                    <span class="vorbehalt-tag" x-show="getVote(d.id,p.id)==='maybe'">Vorbehalt</span>
+                  </div>
+                </td>
+              </template>
+              <td>
+                <div class="vote-summary">
+                  <span class="vs-pill vs-yes" x-text="'✓ '+countVotes(d.id,'yes')"></span>
+                  <span class="vs-pill vs-maybe" x-show="countVotes(d.id,'maybe')>0" x-text="'~ '+countVotes(d.id,'maybe')"></span>
+                  <span class="vs-pill vs-no" x-show="countVotes(d.id,'no')>0" x-text="'✗ '+countVotes(d.id,'no')"></span>
+                </div>
+                <div style="margin-top:5px">
+                  <!-- Confirmed badge -->
+                  <span x-show="finalDateId===d.id" style="font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:99px;display:inline-block">📌 Fixiert</span>
+                  <!-- Admin: set/unset button -->
+                  <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#f0fdf4;color:#15803d;border:1px solid #86efac" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
+                  <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <div class="add-form">
+      <div><label>Von (Do)</label><input type="date" x-model="newDate.from"></div>
+      <div><label>Bis (So)</label><input type="date" x-model="newDate.to"></div>
+      <div><label>Hinweis</label><input type="text" x-model="newDate.sub" placeholder="z.B. Ostern" style="width:120px"></div>
+      <button class="btn btn-primary" @click="addDate()">+ Vorschlagen</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════ VENUES ══ -->
+<div class="content" x-show="tab==='venues'">
+  <p class="section-label">Link reinwerfen — wir lesen die Unterkunft automatisch aus.</p>
+
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><h2>🔗 Unterkunft aus Link hinzufügen</h2></div>
+    <div class="url-input-area">
+      <div class="url-row">
+        <input type="url" x-model="urlInput" placeholder="https://www.traum-ferienwohnungen.de/... oder airbnb, booking, lodgify ..."
+          @keydown.enter="analyzeUrl()" @input="dupWarning=null" :disabled="analyzing">
+        <button class="btn btn-primary" @click="analyzeUrl()" :disabled="analyzing || !urlInput.trim()">
+          <span x-show="!analyzing">Analysieren ✨</span>
+          <span x-show="analyzing">Lädt...</span>
+        </button>
+      </div>
+      <div x-show="dupWarning" style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #e8b84b;border-radius:7px;font-size:0.82rem;color:#7a5800">
+        ⚠️ Bereits in der Liste: <strong x-text="dupWarning"></strong>
+      </div>
+      <div x-show="!dupWarning" style="font-size:0.75rem;color:#bbb;margin-top:7px">Funktioniert mit traum-ferienwohnungen.de, lodgify, airbnb, booking.com und mehr.</div>
+    </div>
+    <div class="loading-card" x-show="analyzing">
+      <div class="spinner"></div>
+      <div style="font-size:0.88rem;color:#888;font-weight:500" x-text="loadingStep"></div>
+    </div>
+  </div>
+
+  <div x-show="pastEvents.length > 0" style="font-size:0.8rem;color:#888;margin-bottom:12px;padding:10px 14px;background:#fff;border-radius:8px;border:1px solid #e8e6e0">
+    📊 Euer Durchschnitt: <strong x-text="avgCostPerPerson()+'€'"></strong> pro Person/Event.
+    <span x-show="bookedVenue && bookedVenue.price">
+      Aktuelle: <strong x-text="bookedVenue && bookedVenue.price ? Math.round(bookedVenue.price/currentParticipantIds.length)+'€' : '—'"></strong>/P
+      (<span x-text="bookedVenue&&bookedVenue.price&&Math.round(bookedVenue.price/currentParticipantIds.length)>avgCostPerPerson()?'▲ teurer':'▼ günstiger'"></span>).
+    </span>
+  </div>
+
+  <template x-for="v in venues" :key="v.id">
+    <div class="venue-card" :class="v.winner?'winner':''">
+      <div class="venue-photos" x-show="v.photos && v.photos.length">
+        <template x-for="(ph,idx) in (v.photos||[])" :key="idx">
+          <img class="venue-photo" :src="ph" :alt="v.name" @click="lightboxSrc=ph">
+        </template>
+      </div>
+      <div class="venue-photos" x-show="!v.photos || !v.photos.length">
+        <div class="venue-photo-placeholder">🏡</div>
+        <div class="venue-photo-placeholder">🛏</div>
+        <div class="venue-photo-placeholder">🪵</div>
+      </div>
+
+      <div class="venue-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <span class="venue-title" x-text="v.name"></span>
+              <span class="badge" style="background:#f0ede8;color:#666" x-show="v.permanent">🏠 Stammlocation</span>
+              <span class="badge badge-green" x-show="v.winner">Gebucht ✓</span>
+            </div>
+            <a x-show="!v.permanent" :href="v.url" target="_blank" class="venue-link" x-text="v.url.length>65?v.url.slice(0,65)+'…':v.url"></a>
+          </div>
+          <div style="text-align:right;flex-shrink:0" x-show="!v.permanent">
+            <div x-show="v.price" style="font-size:1.1rem;font-weight:700" x-text="v.price+'€'"></div>
+            <div x-show="!v.price" style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
+              <input type="number" placeholder="Preis €" min="0"
+                style="width:80px;font-size:0.88rem;font-weight:700;text-align:right;border:1px dashed #e0b84b;border-radius:6px;padding:3px 6px;background:#fffbeb"
+                @change="venues=venues.map(x=>x.id===v.id?{...x,price:Number($event.target.value)||null}:x)">
+            </div>
+            <div style="font-size:0.68rem;color:#aaa">gesamt</div>
+            <div style="font-size:0.78rem;font-weight:600;color:#888" x-show="v.price&&currentParticipantIds.length" x-text="Math.round(v.price/currentParticipantIds.length)+'€ /P'"></div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;font-size:0.82rem;color:#aaa" x-show="v.permanent">kostenlos</div>
+        </div>
+
+        <div class="venue-pills">
+          <span class="pill info" x-show="v.location" x-text="'📍 '+v.location"></span>
+          <span class="pill" :class="v.beds>=5?'good':'bad'" x-text="'🛏 '+v.beds+' Schlafplätze'"></span>
+          <span class="pill" :class="v.sauna?'good':''" x-text="v.sauna?'🧖 Sauna ✓':'Keine Sauna'"></span>
+          <span class="pill" :class="v.bigTable?'good':'bad'" x-text="v.bigTable?'🪑 Großer Tisch ✓':'🪑 Tisch unklar'"></span>
+          <span class="pill info" x-show="v.trainStation" x-text="'🚂 '+v.trainStation"></span>
+          <span class="pill" x-show="v.sqm" x-text="'📐 '+v.sqm+' m²'"></span>
+        </div>
+
+        <!-- Travel distances -->
+        <template x-if="venueTravelData(v.id)">
+          <div class="travel-box">
+            <div class="tlabel">🗺 Anreise der Gruppe (Luftlinie)</div>
+            <div class="travel-items">
+              <span><span style="color:#d9534f">●</span> Weiteste: <strong x-text="venueTravelData(v.id).max.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).max.km+' km)'"></span></span>
+              <span><span style="color:#5cb85c">●</span> Kürzeste: <strong x-text="venueTravelData(v.id).min.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).min.km+' km)'"></span></span>
+              <span>∑ <strong x-text="venueTravelData(v.id).total+' km'"></strong> gesamt</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Map snippet -->
+        <template x-if="venueMapUrl(v)">
+          <div style="margin:10px 0 4px;border-radius:8px;overflow:hidden;height:150px;border:1px solid #e8e6e0;position:relative">
+            <iframe :src="venueMapUrl(v)" style="border:0;width:100%;height:150px;display:block" loading="lazy" scrolling="no" referrerpolicy="no-referrer"></iframe>
+          </div>
+        </template>
+
+        <div x-show="v.rooms && v.rooms.length" style="margin-top:8px">
+          <div class="section-label" style="margin-bottom:5px">Zimmer</div>
+          <div class="rooms-grid">
+            <template x-for="r in (v.rooms||[])" :key="r"><span class="room-badge" x-text="r"></span></template>
+          </div>
+        </div>
+
+        <div x-show="v.notes">
+          <div x-show="!v.permanent" style="font-size:0.7rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#bbb;margin-top:10px;margin-bottom:3px">Aus der Anzeige</div>
+          <div x-show="v.permanent" style="font-size:0.7rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#bbb;margin-top:10px;margin-bottom:3px">Adresse & Zugang</div>
+          <div style="font-size:0.79rem;color:#777;font-style:italic" x-text="v.notes"></div>
+        </div>
+
+        <div style="margin-top:10px">
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#bbb;margin-bottom:4px">Eure Anmerkungen</div>
+          <textarea x-model="v.userNote" style="width:100%;height:54px;font-size:0.8rem;padding:7px 10px;border:1px solid #e8e6e0;border-radius:7px;resize:none;font-family:inherit;color:#555" :placeholder="(me==='admin'?'Admin':peopleName(me))+': Anmerkung hinzufügen...'"></textarea>
+        </div>
+      </div>
+
+      <div class="venue-votes">
+        <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='up'?'active-up':''" @click="setVenueVote(v.id,me,'up')">👍 Dafür</button>
+        <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='meh'?'active-meh':''" @click="setVenueVote(v.id,me,'meh')">🤷 Egal</button>
+        <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='down'?'active-down':''" @click="setVenueVote(v.id,me,'down')">👎 Dagegen</button>
+        <div style="flex:1"></div>
+        <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:700" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
+        <button x-show="v.winner" class="btn btn-sm btn-ghost" @click="unbookVenue(v.id)">Buchung aufheben</button>
+        <div class="vote-avatars">
+          <template x-for="p in eventParticipants" :key="p.id">
+            <span class="vote-avatar" :title="p.name"><span x-text="p.short+' '"></span><span x-text="venueVoteEmoji(v.id,p.id)"></span></span>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+
+<!-- ══════════════════════════ BOOKING ══ -->
+<div class="content" x-show="tab==='booking'">
+  <p class="section-label">Alle Infos zur gebuchten Unterkunft.</p>
+  <div class="card" x-show="!bookedVenue" style="text-align:center;padding:40px 20px;color:#aaa">
+    <div style="font-size:2rem;margin-bottom:10px">🏡</div>
+    <div style="font-size:0.95rem;font-weight:600;color:#888;margin-bottom:6px">Noch keine Unterkunft gebucht</div>
+    <div style="font-size:0.82rem">Geh zu <strong>Unterkünfte</strong> und klick auf „✅ Als gebucht markieren".</div>
+  </div>
+  <div x-show="bookedVenue">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 x-text="bookedVenue&&bookedVenue.name"></h2>
+          <div style="font-size:0.78rem;color:#aaa;margin-top:2px">
+            <span x-text="bookedVenue&&bookedVenue.location"></span>
+            <span x-show="bookedVenue&&bookedVenue.trainStation"> · 🚂 <span x-text="bookedVenue&&bookedVenue.trainStation"></span></span>
+          </div>
+        </div>
+        <span class="badge badge-green">Gebucht ✓</span>
+      </div>
+      <div class="card-body">
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">💶 Preis</div><div class="val" x-text="(bookedVenue&&bookedVenue.price)?bookedVenue.price+'€ gesamt':'—'"></div></div>
+          <div class="info-item"><div class="lbl">🛏 Schlafplätze</div><div class="val" x-text="(bookedVenue&&bookedVenue.beds)?bookedVenue.beds+' Personen':'—'"></div></div>
+          <div class="info-item" style="grid-column:1/-1;background:#fff3cd;border:1px solid #e8b84b;padding:12px">
+            <div class="lbl" style="color:#8a6000">🔑 Schlüsselcode</div>
+            <input type="text" x-model="booking.keyCode" style="width:100%;border:none;background:transparent;font-family:'SF Mono','Fira Code',monospace;font-size:1.5rem;letter-spacing:0.12em;font-weight:700;padding:2px 0" placeholder="Code eintragen">
+          </div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📅 Anreise</div><input type="text" x-model="booking.checkin" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0" placeholder="Do 26.02., ab 16:00"></div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📅 Abreise</div><input type="text" x-model="booking.checkout" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0" placeholder="So 01.03., bis 11:00"></div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📍 Adresse</div><input type="text" x-model="booking.address" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Straße, PLZ Ort"></div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">👤 Vermieter</div><input type="text" x-model="booking.host" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Name / Plattform"></div>
+        </div>
+        <div style="margin-top:20px">
+          <div class="section-label">Wer kommt wann?</div>
+          <div style="margin-top:8px">
+            <template x-for="p in eventParticipants" :key="p.id">
+              <div class="arrival-row">
+                <span class="arrival-name" x-text="p.name"></span>
+                <input type="text" :disabled="p.id!==me && me!=='admin'" x-model="arrivals[p.id]" style="flex:1;max-width:300px;height:33px" :placeholder="(p.id===me||me==='admin')?'Ankunft eintragen...':''" :style="(p.id!==me&&me!=='admin')?'opacity:0.45':''">
+              </div>
+            </template>
+          </div>
+        </div>
+        <div style="margin-top:18px">
+          <div class="section-label">Notizen</div>
+          <textarea x-model="booking.notes" style="width:100%;height:72px;padding:9px 11px;font-size:0.83rem;resize:none;border-radius:8px;border:1px solid #e0ddd8;font-family:inherit" placeholder="Offene Fragen, To-Dos, Hinweise..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ ABRECHNUNG ══ -->
+<div class="content" x-show="tab==='settlement'">
+
+  <div class="archive-banner" x-show="allSettled() && !currentEvent.archived">
+    <div>
+      <h3>🎉 Alle Zahlungen abgeschlossen!</h3>
+      <p>Event archivieren und in die Übersicht übernehmen.</p>
+    </div>
+    <button class="btn" style="background:#fff;color:#1a1a1a;font-weight:700;padding:10px 20px" @click="archiveEvent()">Event archivieren →</button>
+  </div>
+
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Ausgaben</h2>
+      <span class="badge badge-blue" x-text="'Gesamt: '+totalExpenses()+'€'"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="expense-table" style="min-width:500px">
+        <thead><tr><th>Wer</th><th>Kategorie</th><th>Beschreibung</th><th style="text-align:right">Betrag</th><th></th></tr></thead>
+        <tbody>
+          <template x-for="exp in expenses" :key="exp.id">
+            <tr>
+              <td style="font-weight:600" x-text="peopleName(exp.personId)"></td>
+              <td><span class="cat-badge" :class="'cat-'+exp.category" x-text="catLabel(exp.category)"></span></td>
+              <td style="color:#666" x-text="exp.description"></td>
+              <td style="text-align:right;font-weight:600" x-text="exp.amount.toFixed(2)+'€'"></td>
+              <td><button x-show="exp.personId===me||me==='admin'" @click="removeExpense(exp.id)" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:0.85rem">✕</button></td>
+            </tr>
+          </template>
+          <tr x-show="expenses.length===0">
+            <td colspan="5" style="text-align:center;color:#bbb;padding:24px">Noch keine Ausgaben.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="add-form" style="gap:8px">
+      <div><label>Betrag (€)</label><input type="number" x-model="newExp.amount" step="0.01" min="0" style="width:90px" placeholder="0.00"></div>
+      <div>
+        <label>Wer hat gezahlt?</label>
+        <select class="inp" x-model="newExp.personId">
+          <template x-for="p in eventParticipants" :key="p.id">
+            <option :value="p.id" x-text="p.name"></option>
+          </template>
+        </select>
+      </div>
+      <div>
+        <label>Kategorie</label>
+        <select class="inp" x-model="newExp.category">
+          <option value="einkauf">🛒 Einkauf</option>
+          <option value="anreise">🚗 An-/Abreise</option>
+          <option value="haus">🏡 Haus</option>
+          <option value="sonstiges">💡 Sonstiges</option>
+        </select>
+      </div>
+      <div style="flex:1"><label>Beschreibung</label><input type="text" x-model="newExp.description" style="width:100%" placeholder="z.B. Supermarkt Edeka"></div>
+      <button class="btn btn-primary" style="align-self:flex-end" @click="addExpense()" :disabled="!newExp.amount||newExp.amount<=0">+ Eintragen</button>
+    </div>
+  </div>
+
+  <div class="card" x-show="expenses.length>0">
+    <div class="card-header"><h2>Kassen-Bilanz</h2></div>
+    <div class="card-body">
+      <div class="balance-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+        <template x-for="p in eventParticipants" :key="p.id">
+          <div class="balance-item">
+            <span class="balance-name" x-text="p.name"></span>
+            <span class="balance-val" :class="balance(p.id)>0?'balance-pos':balance(p.id)<0?'balance-neg':'balance-zero'" x-text="(balance(p.id)>0?'+':'')+balance(p.id).toFixed(0)+'€'"></span>
+          </div>
+        </template>
+      </div>
+      <div style="font-size:0.75rem;color:#bbb;margin-top:10px">Positiv = bekommt Geld zurück · Negativ = muss noch zahlen</div>
+    </div>
+  </div>
+
+  <div class="card" x-show="expenses.length>0">
+    <div class="card-header">
+      <h2>Ausgleich — minimale Transaktionen</h2>
+      <button class="btn btn-sm btn-ghost" @click="recalcSettlement()">Neu berechnen</button>
+    </div>
+    <div class="card-body" x-show="settlement.length===0" style="color:#bbb;text-align:center;padding:24px">Alle quitt 🎉</div>
+    <table class="settlement-table" x-show="settlement.length>0">
+      <thead><tr><th>Transaktion</th><th style="text-align:right">Betrag</th><th style="text-align:center">Status</th></tr></thead>
+      <tbody>
+        <template x-for="t in settlement" :key="t.id">
+          <tr :style="t.doneSender&&t.doneReceiver?'opacity:0.45':''">
+            <td><span style="font-size:0.82rem;color:#555"><strong x-text="peopleName(t.from)"></strong><span style="color:#aaa"> → </span><strong x-text="peopleName(t.to)"></strong></span></td>
+            <td style="text-align:right"><span class="transfer-amount" x-text="t.amount.toFixed(2)+'€'"></span></td>
+            <td style="text-align:center">
+              <div style="display:flex;flex-direction:column;gap:4px;font-size:0.75rem">
+                <!-- Sender confirmation -->
+                <label class="settled-check" x-show="t.from===me||me==='admin'" style="cursor:pointer">
+                  <input type="checkbox" x-model="t.doneSender">
+                  <span :style="t.doneSender?'color:#2a7a2a;font-weight:700':''">📤 Überwiesen</span>
+                </label>
+                <!-- Receiver confirmation -->
+                <label class="settled-check" x-show="t.to===me||me==='admin'" style="cursor:pointer">
+                  <input type="checkbox" x-model="t.doneReceiver">
+                  <span :style="t.doneReceiver?'color:#2a7a2a;font-weight:700':''">📥 Empfangen</span>
+                </label>
+                <!-- Status for uninvolved viewers -->
+                <span x-show="t.from!==me&&t.to!==me&&me!=='admin'" style="color:#aaa">
+                  <template x-if="t.doneSender&&t.doneReceiver">✓ Abgeschlossen</template>
+                  <template x-if="t.doneSender&&!t.doneReceiver">📤 Überwiesen</template>
+                  <template x-if="!t.doneSender&&t.doneReceiver">📥 Empfangen</template>
+                  <template x-if="!t.doneSender&&!t.doneReceiver">⏳ Ausstehend</template>
+                </span>
+              </div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /main app -->
+
+<!-- Lightbox -->
+<div x-show="lightboxSrc" @click="lightboxSrc=null" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out" x-cloak>
+  <img :src="lightboxSrc" style="max-width:92vw;max-height:92vh;border-radius:8px">
+</div>
+
+<script>
+// URL des Analyse-Backends:
+const ANALYZER_URL = 'https://bswe-analyzer-production.up.railway.app/analyze-url';
+
+// ── Supabase-Konfiguration ──────────────────────────────────────────────────
+// 1. Kostenlosen Account anlegen: https://supabase.com
+// 2. Neues Projekt anlegen, dann im SQL-Editor ausführen:
+//
+//   create table bswe_state (
+//     id text primary key,
+//     data jsonb not null,
+//     updated_at timestamptz default now()
+//   );
+//   alter table bswe_state enable row level security;
+//   create policy "public read"  on bswe_state for select using (true);
+//   create policy "public write" on bswe_state for all using (true);
+//
+// 3. Project Settings → API → URL und anon key hier eintragen:
+const SUPABASE_URL  = 'https://jauydszynxlmjoawhxiz.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphdXlkc3p5bnhsbWpvYXdoeGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTYxNTQsImV4cCI6MjA5NTYzMjE1NH0.GIlRX-L1Hdyd0jZiK95tUlhwoYBsnV82fcVuvsH0HKs';
+const STATE_ROW_ID  = 'bswe2027';
+
+async function supabaseGet() {
+  if (SUPABASE_URL === 'DEINE_SUPABASE_URL') return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/bswe_state?id=eq.${STATE_ROW_ID}&select=data`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await r.json();
+    return rows.length ? rows[0].data : null;
+  } catch(e) { console.warn('Supabase load error:', e); return null; }
+}
+
+async function supabasePut(data) {
+  if (SUPABASE_URL === 'DEINE_SUPABASE_URL') return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/bswe_state`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: STATE_ROW_ID, data, updated_at: new Date().toISOString() })
+    });
+  } catch(e) { console.warn('Supabase save error:', e); }
+}
+
+// Felder die persistent gespeichert werden:
+const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
+  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses'];
+
+let _saveTimer = null;
+function scheduleSave(appState) {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    const snapshot = {};
+    PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
+    supabasePut(snapshot);
+  }, 1500);
+}
+
+const LOADING_STEPS=['Seite wird geladen...','Texte und Bilder analysieren...','Schlaf- und Zimmeranzahl ermitteln...','Lage und Bahnhof suchen...','Ausstattung prüfen...','Karte wird befüllt ✓'];
+
+function app() {
+  return {
+    tab: 'overview',
+    me: 'nico',
+    identityConfirmed: false,
+    savedIdentity: null,
+    urlInput: '', dupWarning: null, analyzing: false, loadingStep: '',
+    lightboxSrc: null,
+    coordsCache: {}, geoLoading: {},
+
+    allPeople: [
+      { id:'christoph', name:'Christoph', short:'CV', hometown:'' },
+      { id:'andreas',   name:'Andreas',   short:'AM', hometown:'' },
+      { id:'michael',   name:'Michael',   short:'MS', hometown:'' },
+      { id:'markus',    name:'Markus',    short:'MK', hometown:'' },
+      { id:'nico',      name:'Nico',      short:'NC', hometown:'' },
+    ],
+
+    currentParticipantIds: ['christoph','andreas','michael','markus','nico'],
+
+    get eventParticipants() {
+      return this.allPeople.filter(p => this.currentParticipantIds.includes(p.id));
+    },
+
+    pastEvents: [],
+
+    currentEvent: { id:'current', name:'Nächstes BSWE', archived: false },
+
+    newEvent: { name:'', participants:[] },
+    newPerson: { name:'', short:'', hometown:'' },
+
+    dates: [],
+    votes: {},
+    finalDate: null,
+    finalDateId: null,
+    newDate: { from:'', to:'', sub:'' },
+
+    venues: [
+      { id:'muehle', name:'Die Mühle', winner:false, permanent:true,
+        url:'', price:0, beds:6, sauna:false, bigTable:true, sqm:null,
+        location:'Vierden, Niedersachsen', trainStation:null,
+        rooms:[], notes:'Hauptstraße 25, 27419 Vierden. Schlüssel unter dem linken Türpfosten.',
+        photos:[
+          'muehle_photos/IMG_20160815_185039389_HDR.jpg',
+          'muehle_photos/IMG_20160825_205851228.jpg',
+          'muehle_photos/IMG_20161127_131534373.jpg',
+          'muehle_photos/IMG_20161127_131551617_HDR.jpg',
+          'muehle_photos/IMG_20161127_131724084_HDR.jpg',
+          'muehle_photos/IMG_20161127_132220955.jpg',
+          'muehle_photos/IMG_20161204_101426205.jpg',
+        ], userNote:'' },
+    ],
+    venueVotes: {},
+
+    booking: { keyCode:'', checkin:'', checkout:'', address:'', host:'', notes:'' },
+    arrivals: {},
+
+    expenses: [],
+    newExp: { amount:'', category:'einkauf', description:'', personId:'nico' },
+    settlement: [],
+
+    async init() {
+      // Lokale Identity wiederherstellen
+      const saved = localStorage.getItem('bswe_identity');
+      if (saved) this.savedIdentity = saved;
+
+      // State von Supabase laden
+      const remote = await supabaseGet();
+      if (remote) {
+        PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
+      }
+
+      this.recalcSettlement();
+      this.newExp.personId = this.me;
+      this.venues.forEach(v => { if (v.location) this.geocodeCity(v.location); });
+
+      // Auto-Save bei jeder Datenänderung
+      this.$watch(
+        () => PERSIST_KEYS.map(k => JSON.stringify(this[k])).join('|'),
+        () => scheduleSave(this)
+      );
+    },
+
+    // ── Identity / Landing ──
+    landingParticipants() {
+      return this.allPeople.filter(p => this.currentParticipantIds.includes(p.id));
+    },
+    confirmIdentity(id) {
+      this.me = id === 'admin' ? 'admin' : id;
+      if (id !== 'admin') this.newExp.personId = id;
+      this.identityConfirmed = true;
+      this.savedIdentity = id;
+      localStorage.setItem('bswe_identity', id);
+    },
+    switchIdentity() {
+      this.identityConfirmed = false;
+      this.savedIdentity = null;
+      localStorage.removeItem('bswe_identity');
+    },
+
+    myPerson() { return this.allPeople.find(p => p.id === this.me); },
+    onMeChange() {
+      if (this.me !== 'admin') {
+        this.newExp.personId = this.me;
+        localStorage.setItem('bswe_identity', this.me);
+        this.savedIdentity = this.me;
+      }
+    },
+    updateHometown(id, val) {
+      this.allPeople = this.allPeople.map(p => p.id===id ? {...p, hometown:val.trim()} : p);
+      if (val.trim()) this.geocodeCity(val.trim());
+    },
+
+    // ── Geocoding ──
+    async geocodeCity(city) {
+      city = city?.trim();
+      if (!city) return;
+      if (Object.prototype.hasOwnProperty.call(this.coordsCache, city)) return;
+      if (this.geoLoading[city]) return;
+      this.geoLoading = {...this.geoLoading, [city]: true};
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&accept-language=de`);
+        const data = await r.json();
+        const coords = data.length ? {lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)} : null;
+        this.coordsCache = {...this.coordsCache, [city]: coords};
+      } catch(e) {
+        this.coordsCache = {...this.coordsCache, [city]: null};
+      }
+      const gl = {...this.geoLoading}; delete gl[city]; this.geoLoading = gl;
+    },
+    haversine(lat1,lng1,lat2,lng2) {
+      const R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+      const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+      return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+    },
+    venueTravelData(venueId) {
+      const v=this.venues.find(x=>x.id===venueId);
+      if(!v||!v.location) return null;
+      const loc=v.location.trim();
+      if(!Object.prototype.hasOwnProperty.call(this.coordsCache,loc)){this.geocodeCity(loc);return null;}
+      const vC=this.coordsCache[loc];
+      if(!vC) return null;
+      const dists=this.eventParticipants.map(p=>{
+        const ht=p.hometown?.trim();
+        if(!ht) return null;
+        if(!Object.prototype.hasOwnProperty.call(this.coordsCache,ht)){this.geocodeCity(ht);return null;}
+        const c=this.coordsCache[ht];
+        if(!c) return null;
+        return {name:p.name,km:this.haversine(c.lat,c.lng,vC.lat,vC.lng)};
+      }).filter(Boolean);
+      if(!dists.length) return null;
+      dists.sort((a,b)=>b.km-a.km);
+      return {max:dists[0],min:dists[dists.length-1],total:dists.reduce((s,d)=>s+d.km,0)};
+    },
+
+    // ── Venue map ──
+    venueMapUrl(v) {
+      const loc = v.location?.trim();
+      if (!loc) return null;
+      if (!Object.prototype.hasOwnProperty.call(this.coordsCache, loc)) {
+        this.geocodeCity(loc);
+        return null;
+      }
+      const c = this.coordsCache[loc];
+      if (!c) return null;
+      const d = 0.18;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
+    },
+
+    // ── Overview ──
+    avgCostPerPerson(){ if(!this.pastEvents.length)return 0; return Math.round(this.pastEvents.reduce((s,e)=>s+e.costPerPerson,0)/this.pastEvents.length); },
+    totalSpent(){ return this.pastEvents.reduce((s,e)=>s+e.total,0); },
+    toggleNewEventParticipant(id){ const i=this.newEvent.participants.indexOf(id); if(i>=0)this.newEvent.participants.splice(i,1);else this.newEvent.participants.push(id); },
+    addPerson(addToEvent=false){
+      if(!this.newPerson.name.trim()) return;
+      const id='p'+Date.now();
+      const short=this.newPerson.short.trim()||this.newPerson.name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const hometown=this.newPerson.hometown.trim();
+      this.allPeople=[...this.allPeople,{id,name:this.newPerson.name.trim(),short,hometown}];
+      if(addToEvent) this.currentParticipantIds=[...this.currentParticipantIds,id];
+      this.newEvent.participants=[...this.newEvent.participants,id];
+      if(hometown) this.geocodeCity(hometown);
+      this.newPerson={name:'',short:'',hometown:''};
+    },
+    createEvent(){
+      if(!this.newEvent.name) return;
+      this.currentParticipantIds=[...this.newEvent.participants];
+      this.currentEvent={id:'ev'+Date.now(),name:this.newEvent.name,archived:false};
+      this.expenses=[];this.settlement=[];this.dates=[];this.votes={};this.finalDate='';this.finalDateId='';
+      this.venues=this.venues.filter(v=>v.permanent).map(v=>({...v,winner:false}));
+      this.venueVotes={};
+      this.booking={keyCode:'',checkin:'',checkout:'',address:'',host:'',notes:''};
+      this.arrivals={};
+      this.newEvent={name:'',participants:[]};
+      this.tab='dates';
+    },
+
+    // ── Participants ──
+    isParticipant(id){ return this.currentParticipantIds.includes(id); },
+    toggleParticipant(id){
+      const i=this.currentParticipantIds.indexOf(id);
+      if(i>=0){if(this.currentParticipantIds.length>2)this.currentParticipantIds.splice(i,1);}
+      else this.currentParticipantIds.push(id);
+      this.recalcSettlement();
+    },
+    peopleName(id){ return id==='admin'?'Admin':(this.allPeople.find(p=>p.id===id)||{}).name||id; },
+
+    // ── Dates ──
+    getVote(did,pid){ return(this.votes[did]||{})[pid]||null; },
+    setVote(did,pid,v){
+      if(pid!==this.me&&this.me!=='admin') return;
+      const target=this.me==='admin'?pid:this.me;
+      if(!this.votes[did])this.votes[did]={};
+      this.votes[did][target]=this.votes[did][target]===v?null:v;
+    },
+    countVotes(did,type){ return Object.values(this.votes[did]||{}).filter(v=>v===type).length; },
+    addDate(){
+      if(!this.newDate.from||!this.newDate.to) return;
+      const fmt=s=>new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+      const id='d'+Date.now();
+      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub});
+      this.votes[id]={};
+      this.newDate={from:'',to:'',sub:''};
+    },
+
+    // ── Venues ──
+    getVenueVote(vid,pid){ return(this.venueVotes[vid]||{})[pid]||null; },
+    setVenueVote(vid,pid,v){
+      if(!this.venueVotes[vid])this.venueVotes[vid]={};
+      this.venueVotes[vid][pid]=this.venueVotes[vid][pid]===v?null:v;
+    },
+    venueVoteEmoji(vid,pid){ const v=this.getVenueVote(vid,pid); return v==='up'?'👍':v==='down'?'👎':v==='meh'?'🤷':'—'; },
+    bookVenue(id){
+      this.venues=this.venues.map(v=>({...v,winner:v.id===id}));
+      const v=this.venues.find(v=>v.id===id);
+      if(v){
+        // Pre-populate booking from venue data; user can edit afterwards
+        this.booking.address = v.location || '';
+        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'Privat' : '');
+        this.booking.keyCode = '';
+        this.booking.checkin = '';
+        this.booking.checkout = '';
+        this.booking.notes = v.notes || '';
+      }
+    },
+    unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
+    get bookedVenue(){ return this.venues.find(v=>v.winner)||null; },
+    async analyzeUrl(){
+      const url=this.urlInput.trim();
+      if(!url) return;
+      const norm=u=>u.replace(/\/+$/,'').toLowerCase();
+      const ex=this.venues.find(v=>norm(v.url)===norm(url));
+      if(ex){this.dupWarning=ex.name||url;return;}
+      this.dupWarning=null; this.analyzing=true;
+      let step=0; this.loadingStep=LOADING_STEPS[0];
+      const iv=setInterval(()=>{step=Math.min(step+1,LOADING_STEPS.length-1);this.loadingStep=LOADING_STEPS[step];},800);
+      try {
+        const res=await fetch(ANALYZER_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({url}),
+        });
+        clearInterval(iv);
+        if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.detail||'Server-Fehler '+res.status);}
+        const data=await res.json();
+        const id='v'+Date.now();
+        this.venues.push({id,url,
+          name:data.name||'Ferienhaus',
+          price:data.price||null,
+          beds:data.beds||null,
+          sauna:data.sauna??null,
+          bigTable:data.bigTable??null,
+          sqm:data.sqm||null,
+          location:data.location||'',
+          trainStation:data.trainStation||null,
+          rooms:data.rooms||[],
+          notes:data.notes||'',
+          photos:data.photos||[],
+          permanent:false,winner:false,userNote:'',
+        });
+        this.venueVotes[id]={};
+        if(data.location) this.geocodeCity(data.location);
+      } catch(e) {
+        clearInterval(iv);
+        alert('Fehler beim Analysieren: '+e.message);
+      }
+      this.urlInput=''; this.analyzing=false; this.loadingStep='';
+    },
+
+    // ── Expenses ──
+    catLabel(c){ return{einkauf:'🛒 Einkauf',anreise:'🚗 An-/Abreise',haus:'🏡 Haus',sonstiges:'💡 Sonstiges'}[c]||c; },
+    totalExpenses(){ return this.expenses.reduce((s,e)=>s+Number(e.amount),0).toFixed(2); },
+    addExpense(){
+      if(!this.newExp.amount||this.newExp.amount<=0) return;
+      const pid=this.me==='admin'?this.newExp.personId:this.me;
+      this.expenses.push({id:'ex'+Date.now(),personId:pid,category:this.newExp.category,amount:Number(this.newExp.amount),description:this.newExp.description});
+      this.newExp={amount:'',category:'einkauf',description:'',personId:this.me==='admin'?this.newExp.personId:this.me};
+      this.recalcSettlement();
+    },
+    removeExpense(id){ this.expenses=this.expenses.filter(e=>e.id!==id); this.recalcSettlement(); },
+    balance(pid){
+      const n=this.currentParticipantIds.length;
+      if(!n) return 0;
+      const total=this.expenses.reduce((s,e)=>s+Number(e.amount),0);
+      const paid=this.expenses.filter(e=>e.personId===pid).reduce((s,e)=>s+Number(e.amount),0);
+      return Math.round((paid-total/n)*100)/100;
+    },
+    recalcSettlement(){
+      let bal=this.currentParticipantIds.map(id=>({id,bal:this.balance(id)}));
+      const tr=[];
+      for(let i=0;i<100;i++){
+        bal.sort((a,b)=>b.bal-a.bal);
+        const cr=bal[0],db=bal[bal.length-1];
+        if(Math.abs(db.bal)<0.01) break;
+        const amt=Math.min(cr.bal,-db.bal);
+        if(amt<0.01) break;
+        tr.push({id:'t'+i,from:db.id,to:cr.id,amount:Math.round(amt*100)/100,doneSender:false,doneReceiver:false});
+        cr.bal-=amt; db.bal+=amt;
+      }
+      this.settlement=tr;
+    },
+    allSettled(){ return this.settlement.length>0&&this.settlement.every(t=>t.doneSender&&t.doneReceiver); },
+    showDeleteConfirm: false,
+    deleteEvent(){
+      this.currentEvent={ name:'', participants:[], dates:[], bookedVenueId:null, expenses:[], archived:true };
+      this.expenses=[];
+      this.settlement=[];
+      this.dateOptions=[];
+      this.showDeleteConfirm=false;
+      this.tab='overview';
+    },
+    archiveEvent(){
+      const total=Number(this.totalExpenses()),n=this.currentParticipantIds.length;
+      this.pastEvents.push({
+        id:'e'+Date.now(),year:new Date().getFullYear().toString(),
+        name:this.currentEvent.name||'BSWE',
+        location:this.bookedVenue?this.bookedVenue.location:'',
+        participants:this.eventParticipants.map(p=>p.name),
+        total:Math.round(total),costPerPerson:n>0?Math.round(total/n):0,archived:true,
+      });
+      this.currentEvent={...this.currentEvent,archived:true};
+      this.tab='overview';
+    },
+  }
+}
+</script>
+
+<!-- ══════════════════════════ SPIELAUSWAHL ══ -->
+<div class="content" x-show="tab==='games'">
+  <div class="card" style="text-align:center;padding:60px 20px;color:#aaa">
+    <div style="font-size:3rem;margin-bottom:12px">🎲</div>
+    <h2 style="font-size:1.2rem;font-weight:700;color:#555;margin-bottom:6px">Spielauswahl</h2>
+    <p style="font-size:0.88rem">🚧 Under Construction</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════ ESSENSPLANUNG ══ -->
+<div class="content" x-show="tab==='food'">
+  <div class="card" style="text-align:center;padding:60px 20px;color:#aaa">
+    <div style="font-size:3rem;margin-bottom:12px">🍽</div>
+    <h2 style="font-size:1.2rem;font-weight:700;color:#555;margin-bottom:6px">Essensplanung</h2>
+    <p style="font-size:0.88rem">🚧 Under Construction</p>
+  </div>
+</div>
+
+<!-- Delete confirmation modal (global) -->
+<div x-show="showDeleteConfirm" x-cloak style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:999;display:flex;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px">⚠️ Event wirklich löschen?</h3>
+    <p style="font-size:0.88rem;color:#555;margin-bottom:6px">
+      Das Event <strong x-text="currentEvent.name||'(unbenannt)'"></strong> wird unwiderruflich gelöscht –
+      inklusive aller Ausgaben, Abstimmungen und Venue-Auswahl.
+    </p>
+    <p style="font-size:0.82rem;color:#b91c1c;margin-bottom:20px">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-sm btn-ghost" @click="showDeleteConfirm=false">Abbrechen</button>
+      <button class="btn btn-sm" style="background:#b91c1c;color:#fff" @click="deleteEvent()">Ja, löschen</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
