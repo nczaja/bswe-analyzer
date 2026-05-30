@@ -926,6 +926,19 @@ function fmtAmount(amount, unit) {
 }
 const WATER_KEYS = ['wasser','mineralwasser','leitungswasser'];
 
+const CATEGORY_RULES = [
+  { id:'c_getraenke',    keys:['saft','bier','wein','kaffee','tee','limonade','cola','sprudel','limo','smoothie','soda','milch','kakao','brause','getränk','espresso','capuccino','cappuccino'] },
+  { id:'c_fruehstueck',  keys:['brot','brötchen','toast','aufschnitt','marmelade','honig','müsli','cornflakes','haferflocken','granola','nutella','frischkäse','quark','butter','margarine'] },
+  { id:'c_snacks',       keys:['chips','nüsse','schokolade','kekse','gummibären','popcorn','cracker','salzstangen','erdnuss','mandel','snack','riegel','süßigkeit','walnuss','cashew','pistazie','praline','bonbon'] },
+];
+function autoCategoryId(name) {
+  const n = name.toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    if (rule.keys.some(k => n.includes(k))) return rule.id;
+  }
+  return 'c_kochzutaten';
+}
+
 const LOADING_STEPS=['Seite wird geladen...','Texte und Bilder analysieren...','Schlaf- und Zimmeranzahl ermitteln...','Lage und Bahnhof suchen...','Ausstattung prüfen...','Karte wird befüllt ✓'];
 
 function app() {
@@ -953,12 +966,12 @@ function app() {
     recipeError: '',
     manualShoppingItems: [],
     newManualItem: '',
+    newManualItemAmount: '',
     mealCategories: [
-      {id:'c_getraenke',   name:'Getränke',      personId:null},
-      {id:'c_obst',        name:'Obst & Gemüse', personId:null},
-      {id:'c_trockenwaren',name:'Trockenwaren',  personId:null},
-      {id:'c_milch',       name:'Milch & Käse',  personId:null},
-      {id:'c_sonstiges',   name:'Sonstiges',     personId:null},
+      {id:'c_kochzutaten', name:'Kochzutaten', personId:null},
+      {id:'c_getraenke',   name:'Getränke',    personId:null},
+      {id:'c_fruehstueck', name:'Frühstück',   personId:null},
+      {id:'c_snacks',      name:'Snacks',      personId:null},
     ],
     shoppingItemCategories: {},
 
@@ -1467,26 +1480,34 @@ function app() {
           if (ing.amount) { combined[key].amount += ing.amount * factor; combined[key].hasAmount = true; }
         }
       }
+      const overrides = this.shoppingItemCategories || {};
       const auto = Object.values(combined)
         .map(x => ({
           key: x.name,
           name: x.name,
           display: x.hasAmount ? fmtAmount(x.amount, x.unit) : (x.unit || ''),
           manual: false,
+          categoryId: overrides[x.name] || autoCategoryId(x.name),
         }))
         .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-      const breakfast = { key:'__fruehstueck', name:'🥐 Frühstück', display:'× '+this.mealsNeeded, manual:false, pinned:true };
-      const manual = (this.manualShoppingItems||[]).map(x=>({...x, manual:true}));
+      const breakfast = { key:'__fruehstueck', name:'🥐 Frühstück', display:'× '+this.mealsNeeded, manual:false, pinned:true, categoryId: overrides['__fruehstueck'] || 'c_fruehstueck' };
+      const manual = (this.manualShoppingItems||[]).map(x=>({...x, manual:true, categoryId: overrides[x.key] || 'c_kochzutaten'}));
       return [breakfast, ...auto, ...manual];
     },
 
     myShoppingItems() {
       return this.shoppingList.filter(item => {
-        const catId = (this.shoppingItemCategories||{})[item.key];
-        if (!catId) return false;
-        const cat = (this.mealCategories||[]).find(c => c.id === catId);
+        const cat = (this.mealCategories||[]).find(c => c.id === item.categoryId);
         return cat?.personId === this.me;
       });
+    },
+
+    shoppingListGrouped() {
+      const list = this.shoppingList;
+      return (this.mealCategories||[]).map(cat => ({
+        ...cat,
+        items: list.filter(i => i.categoryId === cat.id),
+      })).filter(g => g.items.length > 0);
     },
 
     copyMyShoppingList() {
@@ -1500,8 +1521,9 @@ function app() {
     addManualShoppingItem() {
       const name = (this.newManualItem||'').trim();
       if (!name) return;
-      (this.manualShoppingItems||[]).push({ key:'m_'+Date.now(), name, display:'' });
+      (this.manualShoppingItems||[]).push({ key:'m_'+Date.now(), name, display:(this.newManualItemAmount||'').trim() });
       this.newManualItem = '';
+      this.newManualItemAmount = '';
     },
 
     removeManualShoppingItem(key) {
