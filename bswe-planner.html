@@ -1570,6 +1570,76 @@ function app() {
       return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
     },
 
+    // ── Schedule: Anwesenheit ──
+    // Gibt ISO-Datetime für Slot-Start zurück: Slot 0 = 11:00, je +90min
+    slotDateTime(dateStr, slotIndex) {
+      const [y,m,d] = dateStr.split('-').map(Number);
+      const totalMin = 11*60 + slotIndex*90;
+      const h = Math.floor(totalMin/60), min = totalMin%60;
+      return new Date(y, m-1, d, h, min);
+    },
+    // Anzahl anwesender Teilnehmer zu einem bestimmten Slot-Zeitpunkt
+    slotPlayerCount(dateStr, slotIndex) {
+      const slotStart = this.slotDateTime(dateStr, slotIndex);
+      const slotEnd   = this.slotDateTime(dateStr, slotIndex + 1);
+      return this.currentParticipantIds.filter(pid => {
+        const a = this.arrivals[pid];
+        if (!a || typeof a !== 'object') return true; // keine Ankunftszeit = ganztags anwesend
+        const arrive = a.arrive ? new Date(a.arrive) : null;
+        const depart = a.depart ? new Date(a.depart) : null;
+        const presentAtStart = !arrive || arrive <= slotStart;
+        const presentAtEnd   = !depart || depart >= slotEnd;
+        return presentAtStart && presentAtEnd;
+      }).length;
+    },
+    // Alle 8 Spielerzahlen für einen Tag
+    dayPlayerCounts(dateStr) {
+      return Array.from({length:8}, (_,i) => this.slotPlayerCount(dateStr, i));
+    },
+    // Erster Slot mit ≥2 Spielern; letzter Slot vor Abreise
+    dayFirstSlot(dateStr) {
+      const counts = this.dayPlayerCounts(dateStr);
+      for (let i=0; i<8; i++) if (counts[i] >= 2) return i;
+      return 0;
+    },
+    dayLastSlot(dateStr) {
+      // Harte Obergrenze: Checkout der Unterkunft
+      let checkout = null;
+      if (this.booking && this.booking.checkout) checkout = new Date(this.booking.checkout);
+      if (!checkout && this.finalDateId) {
+        const fd = this.dates.find(x=>x.id===this.finalDateId);
+        if (fd && fd.to) checkout = new Date(fd.to+'T23:00:00');
+      }
+      // Letzter Slot mit ≥2 Spielern (und innerhalb Checkout)
+      for (let i=7; i>=0; i--) {
+        const slotEnd = this.slotDateTime(dateStr, i+1);
+        if (checkout && slotEnd > checkout) continue;
+        if (this.slotPlayerCount(dateStr, i) >= 2) return i;
+      }
+      return 0;
+    },
+    // Mismatch: Spieler außerhalb minPlayers–maxPlayers während eines belegten Spiels?
+    gameHasPlayerMismatch(dateStr, gameId) {
+      const game = this.games.find(g=>g.id===gameId);
+      if (!game) return false;
+      const slots = this.schedule[dateStr]||[];
+      let pos = 0;
+      for (const gid of slots) {
+        const g = this.games.find(x=>x.id===gid);
+        const span = g ? this.gameSlots(g) : 1;
+        if (gid === gameId) {
+          for (let i=0; i<span; i++) {
+            const count = this.slotPlayerCount(dateStr, pos+i);
+            if (game.minPlayers && count < game.minPlayers) return true;
+            if (game.maxPlayers && count > game.maxPlayers) return true;
+          }
+          return false;
+        }
+        pos += span;
+      }
+      return false;
+    },
+
     // ── Food methods ──
 
     get mealsNeeded() {
@@ -1948,31 +2018,47 @@ function app() {
           </div>
         </div>
 
-        <!-- Uhrzeiten-Leiste -->
+        <!-- Uhrzeiten-Leiste + Spielerzahl -->
         <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:3px">
           <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30']" :key="i">
-            <div style="font-size:0.62rem;color:#bbb;text-align:center" x-text="t"></div>
+            <div style="text-align:center;line-height:1.3"
+                 :style="(i < dayFirstSlot(day) || i > dayLastSlot(day)) ? 'opacity:0.3' : ''">
+              <div style="font-size:0.6rem;color:#aaa" x-text="t"></div>
+              <div style="font-size:0.65rem;font-weight:600"
+                   :style="slotPlayerCount(day,i)>=2 ? 'color:#4caf50' : 'color:#e53935'"
+                   x-text="'👤×'+slotPlayerCount(day,i)"></div>
+            </div>
           </template>
         </div>
 
         <!-- Kachel-Grid -->
-        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px">
+        <div x-data="{slotPos: 0}" x-init="slotPos=0" style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px">
           <!-- Belegte Kacheln -->
           <template x-for="gid in (schedule[day]||[])" :key="gid">
-            <div x-data="{g: games.find(x=>x.id===gid)}" x-show="games.find(x=>x.id===gid)"
-                 :style="'grid-column:span '+gameSlots(games.find(x=>x.id===gid))+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8'">
+            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid)), startSlot: 0}"
+                 x-init="startSlot=$el.parentElement.__slotPos||0; $el.parentElement.__slotPos=(($el.parentElement.__slotPos||0)+sp)"
+                 x-show="games.find(x=>x.id===gid)"
+                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;'
+                   +(gameHasPlayerMismatch(day,gid)?'box-shadow:0 0 0 3px #e53935;':'')">
               <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
               <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%)"></div>
               <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px">
                 <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
+                <!-- Mismatch-Hinweis -->
+                <div x-show="gameHasPlayerMismatch(day,gid)"
+                     style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
               </div>
               <button x-show="me==='admin'" @click="scheduleRemove(day,gid)"
                       style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1">×</button>
             </div>
           </template>
-          <!-- Freie Slot-Platzhalter -->
-          <template x-for="i in daySlotsFree(day)" :key="'e'+i">
-            <div style="border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7"></div>
+          <!-- Freie Slot-Platzhalter: gesperrte Slots (vor first / nach last) ausgegraut -->
+          <template x-for="(_, fi) in Array.from({length: daySlotsFree(day)})" :key="'e'+fi">
+            <div x-data="{si: (schedule[day]||[]).reduce((s,gid)=>s+gameSlots(games.find(x=>x.id===gid)),0)+fi}"
+                 :style="(si < dayFirstSlot(day) || si > dayLastSlot(day))
+                   ? 'border:1px dashed #e0ddd8;border-radius:8px;background:#f5f5f3;opacity:0.4'
+                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7'">
+            </div>
           </template>
         </div>
 
