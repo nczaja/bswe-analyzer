@@ -158,8 +158,11 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .info-item { background: #fafaf8; border-radius: 8px; padding: 13px; }
 .info-item .lbl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 4px; }
 .info-item .val { font-size: 0.92rem; font-weight: 600; }
-.arrival-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.arrival-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .arrival-name { font-size: 0.84rem; font-weight: 600; width: 90px; flex-shrink: 0; }
+.arrival-dt { font-size: 0.78rem; height: 34px; border: 1px solid #e0ddd8; border-radius: 6px; padding: 0 7px; background: #fff; color: #1a1a1a; flex: 1; min-width: 0; }
+.arrival-dt:disabled { opacity: 0.4; background: #f5f5f3; }
+.arrival-lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #aaa; letter-spacing: 0.06em; }
 
 /* Übersicht */
 .event-card { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 20px; transition: border-color 0.15s; }
@@ -1208,6 +1211,37 @@ function app() {
       return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
     },
 
+    // ── Booking map ──
+    bookingMapUrl() {
+      const addr = this.booking?.address?.trim();
+      if (!addr) return null;
+      if (!Object.prototype.hasOwnProperty.call(this.coordsCache, addr)) {
+        this.geocodeCity(addr);
+        return null;
+      }
+      const c = this.coordsCache[addr];
+      if (!c) return null;
+      const d = 0.05;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
+    },
+
+    get eventDateRange() {
+      const d = this.dates.find(x => x.id === this.finalDateId);
+      if (!d?.from || !d?.to) return null;
+      return { from: d.from, to: d.to };
+    },
+
+    arrivalGet(pid, field) {
+      const a = this.arrivals[pid];
+      if (!a || typeof a === 'string') return '';
+      return a[field] || '';
+    },
+    arrivalSet(pid, field, val) {
+      const a = this.arrivals[pid];
+      const prev = (a && typeof a === 'object') ? a : {};
+      this.arrivals = { ...this.arrivals, [pid]: { ...prev, [field]: val } };
+    },
+
     // ── Overview ──
     avgCostPerPerson(){ if(!this.pastEvents.length)return 0; return Math.round(this.pastEvents.reduce((s,e)=>s+e.costPerPerson,0)/this.pastEvents.length); },
     totalSpent(){ return this.pastEvents.reduce((s,e)=>s+e.total,0); },
@@ -1277,7 +1311,7 @@ function app() {
       if(v){
         // Pre-populate booking from venue data; user can edit afterwards
         this.booking.address = v.location || '';
-        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'Privat' : '');
+        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : '');
         this.booking.keyCode = '';
         this.booking.checkin = '';
         this.booking.checkout = '';
