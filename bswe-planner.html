@@ -1260,6 +1260,21 @@ function app() {
 
     // ── Booking map ──
     bookingMapUrl() {
+      // Zuerst: Koordinaten der gebuchten Venue direkt nutzen (zuverlässiger als booking.address)
+      const venue = this.bookedVenue;
+      const loc = venue?.location?.trim();
+      if (loc) {
+        if (!Object.prototype.hasOwnProperty.call(this.coordsCache, loc)) {
+          this.geocodeCity(loc);
+          return null;
+        }
+        const c = this.coordsCache[loc];
+        if (c) {
+          const d = 0.18;
+          return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
+        }
+      }
+      // Fallback: booking.address (manuell eingetragen)
       const addr = this.booking?.address?.trim();
       if (!addr) return null;
       if (!Object.prototype.hasOwnProperty.call(this.coordsCache, addr)) {
@@ -1268,7 +1283,7 @@ function app() {
       }
       const c = this.coordsCache[addr];
       if (!c) return null;
-      const d = 0.05;
+      const d = 0.18;
       return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
     },
 
@@ -1363,8 +1378,9 @@ function app() {
         this.booking.notes = v.notes || '';
         // Dates aus fixiertem Termin übernehmen
         const fd = this.finalDateId ? this.dates.find(x => x.id === this.finalDateId) : null;
-        this.booking.checkin  = (fd && fd.from) ? fd.from : '';
-        this.booking.checkout = (fd && fd.to)   ? fd.to   : '';
+        const fmtDE = s => s ? new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+        this.booking.checkin  = fmtDE(fd && fd.from);
+        this.booking.checkout = fmtDE(fd && fd.to);
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
@@ -1568,83 +1584,139 @@ function app() {
       if(!game) return 1;
       return game.durationCat==='kurz'?1:game.durationCat==='mittel'?2:4;
     },
-    daySlotsFilled(dateStr) {
-      return (this.schedule[dateStr]||[]).reduce((s,gid)=>{
-        const g=this.games.find(x=>x.id===gid); return s+(g?this.gameSlots(g):0);
-      },0);
+    // Migriert altes Format [gid,...] → neues Format [{gid,start},...]
+    normalizeScheduleDay(arr) {
+      if (!arr || !arr.length) return [];
+      if (typeof arr[0] !== 'object') {
+        let pos = 0;
+        return arr.map(gid => {
+          const g = this.games.find(x => x.id === gid);
+          const entry = { gid, start: pos };
+          pos += g ? this.gameSlots(g) : 1;
+          return entry;
+        });
+      }
+      return arr;
     },
-    daySlotsFree(dateStr) { return Math.max(0,8-this.daySlotsFilled(dateStr)); },
+    daySlotsFilled(dateStr) {
+      return this.normalizeScheduleDay(this.schedule[dateStr]).reduce((s, e) => {
+        const g = this.games.find(x => x.id === e.gid);
+        return s + (g ? this.gameSlots(g) : 0);
+      }, 0);
+    },
+    daySlotsFree(dateStr) { return Math.max(0, 8 - this.daySlotsFilled(dateStr)); },
     daySlotDisplay(dateStr) {
-      const slots=Array(8).fill(null);
-      const colors=['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc'];
-      let pos=0;
-      (this.schedule[dateStr]||[]).forEach((gid,idx)=>{
-        const g=this.games.find(x=>x.id===gid); if(!g)return;
-        const color=colors[idx%colors.length];
-        for(let i=0;i<this.gameSlots(g)&&pos<8;i++,pos++) slots[pos]={name:g.name,color};
+      const slots = Array(8).fill(null);
+      const colors = ['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc'];
+      this.normalizeScheduleDay(this.schedule[dateStr]).forEach((e, idx) => {
+        const g = this.games.find(x => x.id === e.gid); if (!g) return;
+        const color = colors[idx % colors.length];
+        for (let i = 0; i < this.gameSlots(g) && e.start + i < 8; i++) slots[e.start + i] = { name: g.name, color };
       });
       return slots;
     },
-    scheduleAdd(dateStr,gameId) {
-      gameId = isNaN(gameId) ? gameId : +gameId;
-      const game=this.games.find(g=>g.id===gameId);
-      if(!game||this.daySlotsFree(dateStr)<this.gameSlots(game)) return;
-      const s={...this.schedule};
-      if(!s[dateStr])s[dateStr]=[];
-      if(!s[dateStr].includes(gameId)){ s[dateStr]=[...s[dateStr],gameId]; this.schedule=s; scheduleSave(this); }
+    // Renderliste für Kachel-Grid: Spielkacheln + freie Einzelslots
+    scheduleRenderItems(dateStr) {
+      const entries = this.normalizeScheduleDay(this.schedule[dateStr]);
+      const colors = ['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc'];
+      const occupied = new Set();
+      entries.forEach(e => {
+        const g = this.games.find(x => x.id === e.gid); if (!g) return;
+        for (let i = 0; i < this.gameSlots(g); i++) occupied.add(e.start + i);
+      });
+      const items = [];
+      entries.forEach((e, idx) => {
+        const g = this.games.find(x => x.id === e.gid); if (!g) return;
+        items.push({ type: 'game', gid: e.gid, start: e.start + 1, span: this.gameSlots(g), color: colors[idx % colors.length], key: 'g' + e.gid });
+      });
+      for (let si = 0; si < 8; si++) {
+        if (!occupied.has(si)) items.push({ type: 'free', slotIdx: si, start: si + 1, span: 1, key: 'f' + si });
+      }
+      return items;
     },
-    scheduleRemove(dateStr,gameId) {
-      const s={...this.schedule};
-      if(s[dateStr]){ s[dateStr]=s[dateStr].filter(id=>id!==gameId); this.schedule=s; scheduleSave(this); }
+    // Passt ein Spiel der Größe `size` bei Startslot `start` in den Tag (exklusive excludeGid)?
+    canPlaceAt(entries, excludeGid, start, size) {
+      if (start < 0 || start + size > 8) return false;
+      for (const e of entries) {
+        if (e.gid === excludeGid) continue;
+        const g = this.games.find(x => x.id === e.gid); if (!g) continue;
+        if (start < e.start + this.gameSlots(g) && start + size > e.start) return false;
+      }
+      return true;
+    },
+    scheduleAdd(dateStr, gameId) {
+      gameId = isNaN(gameId) ? gameId : +gameId;
+      const game = this.games.find(g => g.id === gameId);
+      if (!game) return;
+      const size = this.gameSlots(game);
+      const entries = this.normalizeScheduleDay(this.schedule[dateStr]);
+      if (entries.find(e => e.gid === gameId)) return;
+      for (let start = 0; start <= 8 - size; start++) {
+        if (this.canPlaceAt(entries, gameId, start, size)) {
+          const s = JSON.parse(JSON.stringify(this.schedule));
+          s[dateStr] = [...this.normalizeScheduleDay(s[dateStr] || []), { gid: gameId, start }];
+          this.schedule = s; scheduleSave(this); return;
+        }
+      }
+    },
+    scheduleRemove(dateStr, gameId) {
+      const s = JSON.parse(JSON.stringify(this.schedule));
+      if (s[dateStr]) { s[dateStr] = this.normalizeScheduleDay(s[dateStr]).filter(e => e.gid !== gameId); this.schedule = s; scheduleSave(this); }
     },
     gamesAvailableForDay(dateStr) {
-      const assigned=this.schedule[dateStr]||[], free=this.daySlotsFree(dateStr);
-      return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
+      const entries = this.normalizeScheduleDay(this.schedule[dateStr]);
+      const assigned = entries.map(e => e.gid);
+      return this.games.filter(g => {
+        if (assigned.includes(g.id)) return false;
+        const size = this.gameSlots(g);
+        for (let start = 0; start <= 8 - size; start++) {
+          if (this.canPlaceAt(entries, g.id, start, size)) return true;
+        }
+        return false;
+      });
     },
 
     // ── Schedule Drag & Drop ──
     scheduleDragGid: null,
     scheduleDragDay: null,
-    scheduleDragOver: null, // 'day|gid' or 'day|__end'
+    scheduleDragOver: null, // 'day|slotIdx'
 
     scheduleDragStart(day, gid, ev) {
       this.scheduleDragGid = gid;
       this.scheduleDragDay = day;
       ev.dataTransfer.effectAllowed = 'move';
     },
-    scheduleDragOverTarget(day, gid, ev) {
+    scheduleDragOverSlot(day, si, ev) {
       if (!this.scheduleDragGid) return;
-      ev.preventDefault();
       ev.dataTransfer.dropEffect = 'move';
-      this.scheduleDragOver = day + '|' + gid;
+      this.scheduleDragOver = day + '|' + si;
     },
-    scheduleDrop(targetDay, targetGid) {
+    scheduleDropOnSlot(targetDay, targetSlot) {
       const srcGid = this.scheduleDragGid;
       const srcDay = this.scheduleDragDay;
-      this.scheduleDragOver = null;
-      this.scheduleDragGid = null;
-      this.scheduleDragDay = null;
-      if (!srcGid || srcGid === targetGid) return;
+      this.scheduleDragOver = null; this.scheduleDragGid = null; this.scheduleDragDay = null;
+      if (!srcGid) return;
+      const game = this.games.find(g => g.id === srcGid); if (!game) return;
+      const size = this.gameSlots(game);
       const s = JSON.parse(JSON.stringify(this.schedule));
-      // Aus Quell-Tag entfernen
-      s[srcDay] = (s[srcDay]||[]).filter(id => id !== srcGid);
-      // In Ziel-Tag einfügen (vor targetGid, oder ans Ende wenn __end)
+      s[srcDay] = this.normalizeScheduleDay(s[srcDay] || []).filter(e => e.gid !== srcGid);
       if (!s[targetDay]) s[targetDay] = [];
-      if (targetGid === '__end') {
-        s[targetDay] = [...s[targetDay], srcGid];
-      } else {
-        const idx = s[targetDay].indexOf(targetGid);
-        s[targetDay] = idx >= 0
-          ? [...s[targetDay].slice(0,idx), srcGid, ...s[targetDay].slice(idx)]
-          : [...s[targetDay], srcGid];
+      const targetEntries = this.normalizeScheduleDay(s[targetDay]);
+      // Nächstbesten freien Slot bei targetSlot suchen
+      let start = targetSlot;
+      if (!this.canPlaceAt(targetEntries, srcGid, start, size)) {
+        let found = false;
+        for (let d = 1; d <= 8; d++) {
+          if (this.canPlaceAt(targetEntries, srcGid, start - d, size)) { start = start - d; found = true; break; }
+          if (this.canPlaceAt(targetEntries, srcGid, start + d, size)) { start = start + d; found = true; break; }
+        }
+        if (!found) return;
       }
-      this.schedule = s;
-      scheduleSave(this);
+      s[targetDay] = [...targetEntries, { gid: srcGid, start }];
+      this.schedule = s; scheduleSave(this);
     },
     scheduleDragEnd() {
-      this.scheduleDragOver = null;
-      this.scheduleDragGid = null;
-      this.scheduleDragDay = null;
+      this.scheduleDragOver = null; this.scheduleDragGid = null; this.scheduleDragDay = null;
     },
 
     // ── Schedule: Anwesenheit ──
@@ -1697,22 +1769,14 @@ function app() {
     },
     // Mismatch: Spieler außerhalb minPlayers–maxPlayers während eines belegten Spiels?
     gameHasPlayerMismatch(dateStr, gameId) {
-      const game = this.games.find(g=>g.id===gameId);
+      const game = this.games.find(g => g.id === gameId);
       if (!game) return false;
-      const slots = this.schedule[dateStr]||[];
-      let pos = 0;
-      for (const gid of slots) {
-        const g = this.games.find(x=>x.id===gid);
-        const span = g ? this.gameSlots(g) : 1;
-        if (gid === gameId) {
-          for (let i=0; i<span; i++) {
-            const count = this.slotPlayerCount(dateStr, pos+i);
-            if (game.minPlayers && count < game.minPlayers) return true;
-            if (game.maxPlayers && count > game.maxPlayers) return true;
-          }
-          return false;
-        }
-        pos += span;
+      const entry = this.normalizeScheduleDay(this.schedule[dateStr]).find(e => e.gid === gameId);
+      if (!entry) return false;
+      for (let i = 0; i < this.gameSlots(game); i++) {
+        const count = this.slotPlayerCount(dateStr, entry.start + i);
+        if (game.minPlayers && count < game.minPlayers) return true;
+        if (game.maxPlayers && count > game.maxPlayers) return true;
       }
       return false;
     },
@@ -2109,48 +2173,42 @@ function app() {
         </div>
 
         <!-- Kachel-Grid -->
-        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px"
-             @dragover.prevent @drop="scheduleDrop(day,'__end')">
-          <!-- Belegte Kacheln -->
-          <template x-for="gid in (schedule[day]||[])" :key="gid">
-            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid))}"
-                 x-show="games.find(x=>x.id===gid)"
-                 :draggable="me==='admin'"
-                 @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
-                 @dragend="scheduleDragEnd()"
-                 @dragover="me==='admin' && scheduleDragOverTarget(day, gid, $event)"
-                 @drop.stop="me==='admin' && scheduleDrop(day, gid)"
-                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
-                   + (scheduleDragGid===gid ? 'opacity:0.4;' : '')
-                   + (scheduleDragOver===day+'|'+gid ? 'box-shadow:inset 3px 0 0 #1a73e8;' : '')
-                   + (gameHasPlayerMismatch(day,gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
-                   + (me==='admin' ? 'cursor:grab;' : '')">
-              <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
-              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
-              <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
-                <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
-                <div x-show="gameHasPlayerMismatch(day,gid)"
-                     style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px">
+          <template x-for="item in scheduleRenderItems(day)" :key="item.key">
+            <!-- Freie Kachel (Drop-Target für beliebige Slot-Position) -->
+            <template x-if="item.type==='free'">
+              <div :style="'grid-column:'+item.start+'/span 1;border:1px dashed #e0ddd8;border-radius:8px;'
+                         +(item.slotIdx < dayFirstSlot(day) || item.slotIdx > dayLastSlot(day) ? 'background:#f5f5f3;opacity:0.4;' : 'background:#faf9f7;')
+                         +(scheduleDragOver===day+'|'+item.slotIdx ? 'background:#e8f0fe;border-color:#1a73e8;' : '')"
+                   @dragover.prevent="me==='admin' && scheduleDragOverSlot(day, item.slotIdx, $event)"
+                   @drop.stop="me==='admin' && scheduleDropOnSlot(day, item.slotIdx)">
               </div>
-              <button x-show="me==='admin'" @click.stop="scheduleRemove(day,gid)"
-                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
-            </div>
-          </template>
-          <!-- Freie Slot-Platzhalter -->
-          <template x-for="(_, fi) in Array.from({length: daySlotsFree(day)})" :key="'e'+fi">
-            <div x-data="{si: (schedule[day]||[]).reduce((s,gid)=>s+gameSlots(games.find(x=>x.id===gid)),0)+fi}"
-                 @dragover="me==='admin' && scheduleDragOverTarget(day, '__end', $event)"
-                 @drop.stop="me==='admin' && scheduleDrop(day, '__end')"
-                 :style="(si < dayFirstSlot(day) || si > dayLastSlot(day))
-                   ? 'border:1px dashed #e0ddd8;border-radius:8px;background:#f5f5f3;opacity:0.4'
-                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7;'
-                     +(scheduleDragOver===day+'|__end'?'background:#e8f0fe;border-color:#1a73e8;':'')">
-            </div>
+            </template>
+            <!-- Spiel-Kachel -->
+            <template x-if="item.type==='game'">
+              <div x-data="{g: games.find(x=>x.id===item.gid)}"
+                   :draggable="me==='admin'"
+                   @dragstart="me==='admin' && scheduleDragStart(day, item.gid, $event)"
+                   @dragend="scheduleDragEnd()"
+                   :style="'grid-column:'+item.start+'/span '+item.span+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                     +(scheduleDragGid===item.gid ? 'opacity:0.4;' : '')
+                     +(gameHasPlayerMismatch(day,item.gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
+                     +(me==='admin' ? 'cursor:grab;' : '')">
+                <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+                <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
+                <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
+                  <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
+                  <div x-show="gameHasPlayerMismatch(day,item.gid)" style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
+                </div>
+                <button x-show="me==='admin'" @click.stop="scheduleRemove(day,item.gid)"
+                        style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
+              </div>
+            </template>
           </template>
         </div>
 
         <!-- Leer-State (User, kein Spiel geplant) -->
-        <div x-show="(schedule[day]||[]).length===0 && me!=='admin'"
+        <div x-show="normalizeScheduleDay(schedule[day]).length===0 && me!=='admin'"
              style="text-align:center;padding:16px;color:#ccc;font-size:0.82rem">
           Noch keine Spiele für diesen Tag geplant.
         </div>
