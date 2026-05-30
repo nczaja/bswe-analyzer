@@ -1330,9 +1330,11 @@ function app() {
         this.booking.address = v.location || '';
         this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : '');
         this.booking.keyCode = '';
-        this.booking.checkin = '';
-        this.booking.checkout = '';
         this.booking.notes = v.notes || '';
+        // Dates aus fixiertem Termin übernehmen
+        const fd = this.finalDateId ? this.dates.find(x => x.id === this.finalDateId) : null;
+        this.booking.checkin  = (fd && fd.from) ? fd.from : '';
+        this.booking.checkout = (fd && fd.to)   ? fd.to   : '';
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
@@ -1568,6 +1570,51 @@ function app() {
     gamesAvailableForDay(dateStr) {
       const assigned=this.schedule[dateStr]||[], free=this.daySlotsFree(dateStr);
       return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
+    },
+
+    // ── Schedule Drag & Drop ──
+    scheduleDragGid: null,
+    scheduleDragDay: null,
+    scheduleDragOver: null, // 'day|gid' or 'day|__end'
+
+    scheduleDragStart(day, gid, ev) {
+      this.scheduleDragGid = gid;
+      this.scheduleDragDay = day;
+      ev.dataTransfer.effectAllowed = 'move';
+    },
+    scheduleDragOverTarget(day, gid, ev) {
+      if (!this.scheduleDragGid) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      this.scheduleDragOver = day + '|' + gid;
+    },
+    scheduleDrop(targetDay, targetGid) {
+      const srcGid = this.scheduleDragGid;
+      const srcDay = this.scheduleDragDay;
+      this.scheduleDragOver = null;
+      this.scheduleDragGid = null;
+      this.scheduleDragDay = null;
+      if (!srcGid || srcGid === targetGid) return;
+      const s = JSON.parse(JSON.stringify(this.schedule));
+      // Aus Quell-Tag entfernen
+      s[srcDay] = (s[srcDay]||[]).filter(id => id !== srcGid);
+      // In Ziel-Tag einfügen (vor targetGid, oder ans Ende wenn __end)
+      if (!s[targetDay]) s[targetDay] = [];
+      if (targetGid === '__end') {
+        s[targetDay] = [...s[targetDay], srcGid];
+      } else {
+        const idx = s[targetDay].indexOf(targetGid);
+        s[targetDay] = idx >= 0
+          ? [...s[targetDay].slice(0,idx), srcGid, ...s[targetDay].slice(idx)]
+          : [...s[targetDay], srcGid];
+      }
+      this.schedule = s;
+      scheduleSave(this);
+    },
+    scheduleDragEnd() {
+      this.scheduleDragOver = null;
+      this.scheduleDragGid = null;
+      this.scheduleDragDay = null;
     },
 
     // ── Schedule: Anwesenheit ──
@@ -2032,32 +2079,42 @@ function app() {
         </div>
 
         <!-- Kachel-Grid -->
-        <div x-data="{slotPos: 0}" x-init="slotPos=0" style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px"
+             @dragover.prevent @drop="scheduleDrop(day,'__end')">
           <!-- Belegte Kacheln -->
           <template x-for="gid in (schedule[day]||[])" :key="gid">
-            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid)), startSlot: 0}"
-                 x-init="startSlot=$el.parentElement.__slotPos||0; $el.parentElement.__slotPos=(($el.parentElement.__slotPos||0)+sp)"
+            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid))}"
                  x-show="games.find(x=>x.id===gid)"
-                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;'
-                   +(gameHasPlayerMismatch(day,gid)?'box-shadow:0 0 0 3px #e53935;':'')">
-              <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%)"></div>
-              <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px">
+                 :draggable="me==='admin'"
+                 @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
+                 @dragend="scheduleDragEnd()"
+                 @dragover="me==='admin' && scheduleDragOverTarget(day, gid, $event)"
+                 @drop.stop="me==='admin' && scheduleDrop(day, gid)"
+                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                   + (scheduleDragGid===gid ? 'opacity:0.4;' : '')
+                   + (scheduleDragOver===day+'|'+gid ? 'box-shadow:inset 3px 0 0 #1a73e8;' : '')
+                   + (gameHasPlayerMismatch(day,gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
+                   + (me==='admin' ? 'cursor:grab;' : '')">
+              <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
                 <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
-                <!-- Mismatch-Hinweis -->
                 <div x-show="gameHasPlayerMismatch(day,gid)"
                      style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
               </div>
-              <button x-show="me==='admin'" @click="scheduleRemove(day,gid)"
-                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1">×</button>
+              <button x-show="me==='admin'" @click.stop="scheduleRemove(day,gid)"
+                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
             </div>
           </template>
-          <!-- Freie Slot-Platzhalter: gesperrte Slots (vor first / nach last) ausgegraut -->
+          <!-- Freie Slot-Platzhalter -->
           <template x-for="(_, fi) in Array.from({length: daySlotsFree(day)})" :key="'e'+fi">
             <div x-data="{si: (schedule[day]||[]).reduce((s,gid)=>s+gameSlots(games.find(x=>x.id===gid)),0)+fi}"
+                 @dragover="me==='admin' && scheduleDragOverTarget(day, '__end', $event)"
+                 @drop.stop="me==='admin' && scheduleDrop(day, '__end')"
                  :style="(si < dayFirstSlot(day) || si > dayLastSlot(day))
                    ? 'border:1px dashed #e0ddd8;border-radius:8px;background:#f5f5f3;opacity:0.4'
-                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7'">
+                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7;'
+                     +(scheduleDragOver===day+'|__end'?'background:#e8f0fe;border-color:#1a73e8;':'')">
             </div>
           </template>
         </div>
