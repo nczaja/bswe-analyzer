@@ -1022,8 +1022,14 @@ function app() {
     mealCategoryPersonIds: {},
     shoppingItemCategories: {},
 
-    // ── Games ──
-    games: [],
+    // ── Games ── (Mock-Daten für Testing – BGG-API ausstehend)
+    games: [
+      { id: 237182, name: 'Root', thumbnail: 'https://cf.geekdo-images.com/JUAUWaVUzeBgzirhZNmHHw__thumb/img/kIFPVHJkltk4CDQT3nnlh9HoXqY=/fit-in/200x150/filters:strip_icc()/pic4254509.jpg', minPlayers: 2, maxPlayers: 4, maxPlaytime: 90, description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://cf.geekdo-images.com/mDKKoMF0ARbYnVU3hxHp0g__thumb/img/F3MVE40mfhT3s7fOEHOUjJvSyOk=/fit-in/200x150/filters:strip_icc()/pic5765899.jpg', minPlayers: 1, maxPlayers: 6, maxPlaytime: 120, description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://cf.geekdo-images.com/UMFpBfzDvG38yUcwJX-JkA__thumb/img/bSGBOE5e0V_PaKF3YHjvIXbPBUg=/fit-in/200x150/filters:strip_icc()/pic8143123.jpg', minPlayers: 2, maxPlayers: 4, maxPlaytime: 120, description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 396790, name: 'Molly House', thumbnail: 'https://cf.geekdo-images.com/sAILMWIx4Dg0mQlE1AXJZA__thumb/img/4KjRdqFaAnS5lFpQLgbHxC2JqDA=/fit-in/200x150/filters:strip_icc()/pic7839847.jpg', minPlayers: 2, maxPlayers: 5, maxPlaytime: 90, description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://cf.geekdo-images.com/9KuHpRgVAECiqoFW22INgA__thumb/img/r08V6lGlHiNhvpnQjMDmaXOX2ps=/fit-in/200x150/filters:strip_icc()/pic6601629.jpg', minPlayers: 1, maxPlayers: 6, maxPlaytime: 180, description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+    ],
     gameVotes: {},
     schedule: {},
     gameSubTab: 'list',
