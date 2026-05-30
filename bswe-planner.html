@@ -1855,9 +1855,21 @@ function app() {
           <!-- Titel + Badges -->
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
             <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
-            <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
-                  :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
-                  x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+            <!-- Dauer-Badge: für Admin als Dropdown, sonst nur Label -->
+            <template x-if="me==='admin'">
+              <select x-model="game.durationCat" @change="games=[...games]; scheduleSave($data)"
+                      style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;border:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none"
+                      :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'">
+                <option value="kurz">⚡ Kurz</option>
+                <option value="mittel">⏱ Mittel</option>
+                <option value="lang">⏳ Lang</option>
+              </select>
+            </template>
+            <template x-if="me!=='admin'">
+              <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
+                    :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
+                    x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+            </template>
             <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
           </div>
           <!-- Spieler & Zeit -->
@@ -1925,7 +1937,7 @@ function app() {
           <div>
             <span style="font-weight:700;font-size:0.95rem" x-text="formatDay(day)"></span>
             <span style="color:#bbb;font-size:0.78rem;margin-left:6px"
-                  x-text="daySlotsFilled(day)+'/8 Slots'"></span>
+                  x-text="daySlotsFilled(day)+'/8 Slots · '+daySlotsFree(day)+' frei (bis 23:00)'"></span>
           </div>
           <div style="display:flex;gap:2px" :title="daySlotsFree(day)+' Slots frei'">
             <template x-for="(slot,si) in daySlotDisplay(day)" :key="si">
@@ -1934,6 +1946,13 @@ function app() {
                    :title="slot?slot.name:'frei'"></div>
             </template>
           </div>
+        </div>
+
+        <!-- Uhrzeiten-Leiste -->
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:3px">
+          <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30']" :key="i">
+            <div style="font-size:0.62rem;color:#bbb;text-align:center" x-text="t"></div>
+          </template>
         </div>
 
         <!-- Kachel-Grid -->
