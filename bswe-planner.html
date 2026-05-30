@@ -511,6 +511,8 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                   <!-- Admin: set/unset button -->
                   <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#f0fdf4;color:#15803d;border:1px solid #86efac" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
                   <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
+                  <!-- Admin: delete date -->
+                  <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin-left:4px" @click="deleteDate(d.id)" title="Termin löschen">🗑</button>
                 </div>
               </td>
             </tr>
@@ -1358,6 +1360,10 @@ function app() {
       this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,from:this.newDate.from,to:this.newDate.to});
       this.votes[id]={};
       this.newDate={from:'',to:'',sub:''};
+    },
+    deleteDate(did){
+      this.dates=this.dates.filter(d=>d.id!==did);
+      const v={...this.votes}; delete v[did]; this.votes=v;
     },
 
     // ── Venues ──
