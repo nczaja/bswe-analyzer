@@ -27,6 +27,10 @@ class UrlRequest(BaseModel):
     url: str
 
 
+class RecipeRequest(BaseModel):
+    text: str
+
+
 PROMPT_TEMPLATE = """Analysiere diesen Text einer Ferienhaus-Website und extrahiere folgende Informationen als JSON.
 Antworte ausschließlich mit gültigem JSON, ohne Markdown-Codeblöcke, ohne Erklärungen.
 
@@ -165,6 +169,58 @@ async def analyze_url(req: UrlRequest):
     if photos:
         result["photos"] = photos
 
+    return result
+
+
+RECIPE_PROMPT = """Analysiere dieses Rezept und extrahiere folgende Informationen als JSON.
+Antworte ausschließlich mit gültigem JSON, ohne Markdown-Codeblöcke, ohne Erklärungen.
+
+{
+  "name": "Name des Gerichts",
+  "description": "Kurze appetitliche Beschreibung in 1-2 Sätzen (max 120 Zeichen)",
+  "durationMinutes": 45,
+  "isVegetarian": true,
+  "isVegan": false,
+  "servings": 4,
+  "ingredients": [
+    {"name": "Zwiebeln", "amount": 2, "unit": "Stück"},
+    {"name": "Olivenöl", "amount": 3, "unit": "EL"}
+  ]
+}
+
+Regeln:
+- description: Max. 120 Zeichen, appetitlich und konkret formuliert
+- durationMinutes: Gesamtzeit inkl. Vorbereitung und Kochen als Zahl, null wenn unklar
+- isVegetarian: true wenn kein Fleisch und kein Fisch, sonst false
+- isVegan: true wenn keine tierischen Produkte (kein Fleisch, Fisch, Milch, Eier, Honig), sonst false
+- servings: Anzahl Portionen laut Rezept als Zahl, null wenn unklar
+- ingredients: Vollständige Zutatenliste; amount als Zahl (null wenn keine genaue Menge), unit als String (null wenn keine Einheit)
+
+Rezept:
+{text}"""
+
+
+@app.post("/analyze-recipe")
+async def analyze_recipe(req: RecipeRequest):
+    if not groq_client:
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY nicht konfiguriert")
+    text = req.text.strip()[:8000]
+    if not text:
+        raise HTTPException(status_code=400, detail="Kein Rezepttext angegeben")
+    prompt = RECIPE_PROMPT.replace("{text}", text)
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=1024,
+        )
+        raw = completion.choices[0].message.content.strip()
+        result = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Kein gültiges JSON zurückbekommen")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Groq-Fehler: {str(e)}")
     return result
 
 
