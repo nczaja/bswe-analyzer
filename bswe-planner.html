@@ -299,9 +299,9 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     @click="if(!currentEvent.archived) tab='games'"
     :title="currentEvent.archived ? 'Kein aktives Event' : ''">🎲 Spielauswahl</div>
   <div class="tab"
-    :class="{active: tab==='food', 'tab-disabled': currentEvent.archived}"
-    @click="if(!currentEvent.archived) tab='food'"
-    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🍽 Essensplanung</div>
+    :class="{active: tab==='food', 'tab-disabled': currentEvent.archived || !finalDate}"
+    @click="if(!currentEvent.archived && finalDate) tab='food'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : !finalDate ? 'Erst Termin fixieren' : ''">🍽 Essensplanung</div>
   <div class="tab"
     :class="{active: tab==='settlement', 'tab-disabled': currentEvent.archived}"
     @click="if(!currentEvent.archived) tab='settlement'"
@@ -879,7 +879,8 @@ async function supabasePut(data) {
 // Felder die persistent gespeichert werden:
 const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
   'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
-  'games','gameVotes','schedule'];
+  'games','gameVotes','schedule',
+  'recipes','foodVotes','selectedMealIds','foodLocked','mealAssignments'];
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -905,6 +906,18 @@ function app() {
     editingEventName: false, tempEventName: '',
     venueSortBy: 'votes',
     dateSortBy: 'votes',
+
+    // ── Food ──
+    recipes: [],
+    foodVotes: {},
+    selectedMealIds: [],
+    foodLocked: false,
+    mealAssignments: {},
+    foodSortBy: 'votes',
+    foodFilters: [],
+    recipeInput: '',
+    analyzingRecipe: false,
+    recipeError: '',
 
     // ── Games ──
     games: [],
@@ -1129,7 +1142,7 @@ function app() {
       if(!this.newDate.from||!this.newDate.to) return;
       const fmt=s=>new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
       const id='d'+Date.now();
-      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub});
+      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,from:this.newDate.from,to:this.newDate.to});
       this.votes[id]={};
       this.newDate={from:'',to:'',sub:''};
     },
@@ -1364,6 +1377,134 @@ function app() {
     gamesAvailableForDay(dateStr) {
       const assigned=this.schedule[dateStr]||[], free=this.daySlotsFree(dateStr);
       return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
+    },
+
+    // ── Food methods ──
+
+    get mealsNeeded() {
+      const d = this.dates.find(x => x.id === this.finalDateId);
+      if (d?.from && d?.to) {
+        const ms = new Date(d.to) - new Date(d.from);
+        return Math.max(1, Math.round(ms / 86400000));
+      }
+      return 2; // Fallback
+    },
+
+    get sortedFilteredRecipes() {
+      let list = [...this.recipes];
+      if (this.foodLocked && this.me !== 'admin') {
+        list = list.filter(r => this.selectedMealIds.includes(r.id));
+      }
+      if (this.foodFilters.includes('vegan')) {
+        list = list.filter(r => r.isVegan);
+      } else if (this.foodFilters.includes('vegetarisch')) {
+        list = list.filter(r => r.isVegetarian || r.isVegan);
+      }
+      if (this.foodSortBy === 'votes') {
+        list.sort((a, b) => this.foodScore(b.id) - this.foodScore(a.id));
+      } else if (this.foodSortBy === 'duration') {
+        list.sort((a, b) => (a.durationMinutes || 9999) - (b.durationMinutes || 9999));
+      } else {
+        list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      }
+      return list;
+    },
+
+    get shoppingList() {
+      const n = this.currentParticipantIds.length;
+      const combined = {};
+      for (const id of this.selectedMealIds) {
+        const r = this.recipes.find(x => x.id === id);
+        if (!r?.ingredients?.length || !r.servings) continue;
+        const factor = n / r.servings;
+        for (const ing of r.ingredients) {
+          const key = ing.name.toLowerCase().trim();
+          if (!combined[key]) combined[key] = { name: ing.name, amount: 0, hasAmount: false, unit: ing.unit };
+          if (ing.amount) { combined[key].amount += ing.amount * factor; combined[key].hasAmount = true; }
+        }
+      }
+      return Object.values(combined)
+        .map(x => {
+          let display = '';
+          if (x.hasAmount) {
+            const rounded = Math.round(x.amount * 10) / 10;
+            display = (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + (x.unit ? ' ' + x.unit : '');
+          } else {
+            display = x.unit || '';
+          }
+          return { key: x.name, name: x.name, display };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    },
+
+    foodScore(id) {
+      const v = this.foodVotes[id] || {};
+      return Object.values(v).reduce((s, x) => s + (x === 'vollbock' ? 2 : x === 'bock' ? 1 : 0), 0);
+    },
+
+    foodVoteCount(id, v) {
+      return Object.values(this.foodVotes[id] || {}).filter(x => x === v).length;
+    },
+
+    setFoodVote(id, v) {
+      if (!this.foodVotes[id]) this.foodVotes[id] = {};
+      if (this.foodVotes[id][this.me] === v) delete this.foodVotes[id][this.me];
+      else this.foodVotes[id][this.me] = v;
+      this.foodVotes = { ...this.foodVotes };
+    },
+
+    toggleMealSelection(id) {
+      const i = this.selectedMealIds.indexOf(id);
+      if (i >= 0) this.selectedMealIds.splice(i, 1);
+      else if (this.selectedMealIds.length < this.mealsNeeded) this.selectedMealIds.push(id);
+    },
+
+    toggleFoodFilter(f) {
+      const i = this.foodFilters.indexOf(f);
+      if (i >= 0) this.foodFilters.splice(i, 1);
+      else this.foodFilters.push(f);
+    },
+
+    removeRecipe(id) {
+      this.recipes = this.recipes.filter(r => r.id !== id);
+      this.selectedMealIds = this.selectedMealIds.filter(x => x !== id);
+      const v = { ...this.foodVotes };
+      delete v[id];
+      this.foodVotes = v;
+    },
+
+    async analyzeRecipe() {
+      this.analyzingRecipe = true;
+      this.recipeError = '';
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url', '');
+        const res = await fetch(base + '/analyze-recipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: this.recipeInput })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Fehler beim Analysieren' }));
+          throw new Error(err.detail || 'Fehler');
+        }
+        const data = await res.json();
+        const id = 'r_' + Date.now();
+        this.recipes.push({
+          id,
+          name: data.name || 'Unbekanntes Gericht',
+          description: data.description || '',
+          durationMinutes: data.durationMinutes || null,
+          isVegetarian: data.isVegetarian || false,
+          isVegan: data.isVegan || false,
+          ingredients: data.ingredients || [],
+          servings: data.servings || null,
+        });
+        this.recipeInput = '';
+      } catch (e) {
+        this.recipeError = e.message;
+      } finally {
+        this.analyzingRecipe = false;
+      }
     },
 
     showDeleteConfirm: false,
@@ -1608,12 +1749,154 @@ function app() {
 
 <!-- ══════════════════════════ ESSENSPLANUNG ══ -->
 <div class="content" x-show="tab==='food'">
-  <div class="card" style="text-align:center;padding:60px 20px;color:#aaa">
-    <div style="font-size:3rem;margin-bottom:12px">🍽</div>
-    <h2 style="font-size:1.2rem;font-weight:700;color:#555;margin-bottom:6px">Essensplanung</h2>
-    <p style="font-size:0.88rem">🚧 Under Construction</p>
+
+  <!-- Header: Mahlzeiten-Zähler + Festklopfen -->
+  <div class="card" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+    <div style="font-size:0.88rem">
+      🍽 Wir brauchen <strong x-text="mealsNeeded"></strong> Abendessen.
+      <span style="color:#888" x-text="selectedMealIds.length > 0 ? selectedMealIds.length+' ausgewählt.' : 'Noch keine Auswahl.'"></span>
+    </div>
+    <label x-show="me==='admin' && selectedMealIds.length >= mealsNeeded"
+           style="display:flex;align-items:center;gap:7px;font-size:0.82rem;cursor:pointer;user-select:none">
+      <input type="checkbox" x-model="foodLocked" style="cursor:pointer;width:15px;height:15px">
+      <span>Festklopfen?</span>
+    </label>
   </div>
-</div>
+
+  <!-- Sort / Filter bar -->
+  <div class="card" style="padding:11px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:5px;font-size:0.82rem">
+      <span style="color:#bbb;font-size:0.73rem;margin-right:2px">Sortieren:</span>
+      <template x-for="s in [{v:'votes',l:'Votes'},{v:'duration',l:'Aufwand'},{v:'alpha',l:'A–Z'}]" :key="s.v">
+        <button class="btn btn-sm" :style="foodSortBy===s.v?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':''"
+                @click="foodSortBy=s.v" x-text="s.l"></button>
+      </template>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:0.82rem;margin-left:auto">
+      <span style="color:#bbb;font-size:0.73rem;margin-right:2px">Filter:</span>
+      <template x-for="f in [{v:'vegetarisch',l:'🥦 Veg'},{v:'vegan',l:'🌱 Vegan'}]" :key="f.v">
+        <button class="btn btn-sm"
+                :style="foodFilters.includes(f.v)?'background:#2d7a2d;color:#fff;border-color:#2d7a2d':''"
+                @click="toggleFoodFilter(f.v)" x-text="f.l"></button>
+      </template>
+    </div>
+  </div>
+
+  <!-- Recipe cards -->
+  <template x-for="recipe in sortedFilteredRecipes" :key="recipe.id">
+    <div class="card" style="margin-bottom:10px"
+         :style="selectedMealIds.includes(recipe.id)?'border-color:#5cb85c;border-width:2px':''">
+      <div style="padding:16px 18px">
+        <!-- Name + badges + select button -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+              <span style="font-size:1rem;font-weight:700" x-text="recipe.name"></span>
+              <span x-show="recipe.isVegan" style="background:#e8f5e9;color:#2d7a2d;border:1px solid #a5d6a7;border-radius:4px;font-size:0.65rem;font-weight:700;padding:1px 5px">🌱 VEGAN</span>
+              <span x-show="recipe.isVegetarian && !recipe.isVegan" style="background:#f1f8e9;color:#558b2f;border:1px solid #c5e1a5;border-radius:4px;font-size:0.65rem;font-weight:700;padding:1px 5px">🥦 VEG</span>
+              <span x-show="recipe.durationMinutes" style="color:#999;font-size:0.77rem">🕐 <span x-text="recipe.durationMinutes+' Min'"></span></span>
+            </div>
+            <p style="font-size:0.83rem;color:#666;margin-top:5px;line-height:1.45" x-text="recipe.description"></p>
+          </div>
+          <!-- Admin-Auswahl -->
+          <div x-show="me==='admin' && !foodLocked" style="flex-shrink:0">
+            <button x-show="!selectedMealIds.includes(recipe.id)"
+                    :disabled="selectedMealIds.length >= mealsNeeded"
+                    class="btn btn-sm"
+                    style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:600"
+                    @click="toggleMealSelection(recipe.id)">✓ Auswählen</button>
+            <button x-show="selectedMealIds.includes(recipe.id)"
+                    class="btn btn-sm"
+                    style="background:#5cb85c;color:#fff;border:1px solid #4cae4c;font-weight:600"
+                    @click="toggleMealSelection(recipe.id)">✓ Ausgewählt</button>
+          </div>
+          <div x-show="selectedMealIds.includes(recipe.id) && (me!=='admin' || foodLocked)"
+               style="background:#e0f5e0;color:#2a7a2a;border:1px solid #a5d6a7;border-radius:6px;padding:3px 8px;font-size:0.73rem;font-weight:700;flex-shrink:0">
+            ✓ Dabei
+          </div>
+        </div>
+        <!-- Votes -->
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
+            <button class="btn btn-sm"
+                    :style="(foodVotes[recipe.id]||{})[me]===opt.v
+                      ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
+                        :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
+                        :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
+                    @click="setFoodVote(recipe.id, opt.v)">
+              <span x-text="opt.l"></span>
+              <span x-show="foodVoteCount(recipe.id, opt.v) > 0"
+                    x-text="' · '+foodVoteCount(recipe.id, opt.v)"
+                    style="opacity:0.6;font-size:0.85em"></span>
+            </button>
+          </template>
+          <button x-show="me==='admin' && !foodLocked" class="btn btn-sm"
+                  style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
+                  @click="removeRecipe(recipe.id)" title="Rezept entfernen">🗑</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Empty state -->
+  <div x-show="sortedFilteredRecipes.length === 0 && recipes.length === 0" class="card"
+       style="text-align:center;padding:40px 20px;color:#aaa">
+    <div style="font-size:2.5rem;margin-bottom:12px">🍳</div>
+    <p style="font-size:0.88rem">Noch keine Rezepte vorgeschlagen — fang an!</p>
+  </div>
+  <div x-show="sortedFilteredRecipes.length === 0 && recipes.length > 0" class="card"
+       style="text-align:center;padding:28px 20px;color:#aaa">
+    <p style="font-size:0.88rem">Keine Rezepte für diesen Filter.</p>
+  </div>
+
+  <!-- Rezept vorschlagen (solange nicht gelockt, oder admin) -->
+  <div x-show="!foodLocked || me==='admin'" class="card" style="margin-top:12px">
+    <div class="card-header">
+      <h3 style="font-size:0.95rem;font-weight:700">Rezept vorschlagen</h3>
+    </div>
+    <div class="card-body">
+      <p style="font-size:0.82rem;color:#888;margin-bottom:10px">
+        Rezept hier reinkopieren — Name, Beschreibung, Zeitaufwand und Zutaten werden automatisch erkannt.
+      </p>
+      <textarea x-model="recipeInput"
+                placeholder="Zutaten für 4 Personen:&#10;- 500g Pasta&#10;- 2 Zwiebeln&#10;..."
+                style="width:100%;min-height:140px;padding:10px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.83rem;font-family:inherit;resize:vertical;line-height:1.5"
+                :disabled="analyzingRecipe"></textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary"
+                :disabled="!recipeInput.trim() || analyzingRecipe"
+                @click="analyzeRecipe()">
+          <span x-show="!analyzingRecipe">🍴 Rezept hinzufügen</span>
+          <span x-show="analyzingRecipe">⏳ Wird analysiert…</span>
+        </button>
+        <span x-show="recipeError" x-text="recipeError" style="color:#cc3333;font-size:0.82rem"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Einkaufsliste -->
+  <div x-show="selectedMealIds.length > 0" style="margin-top:16px">
+    <div class="card">
+      <div class="card-header">
+        <h3 style="font-size:0.95rem;font-weight:700">🛒 Einkaufsliste</h3>
+        <span style="font-size:0.78rem;color:#aaa" x-text="currentParticipantIds.length+' Personen'"></span>
+      </div>
+      <div class="card-body" style="padding:10px 20px">
+        <template x-for="item in shoppingList" :key="item.key">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f5f3f0">
+            <span style="font-size:0.88rem" x-text="item.name"></span>
+            <span style="font-size:0.82rem;color:#444;font-weight:600;margin-left:16px;white-space:nowrap" x-text="item.display"></span>
+          </div>
+        </template>
+        <div x-show="shoppingList.length === 0"
+             style="color:#bbb;font-size:0.83rem;padding:10px 0;text-align:center">
+          Keine Zutaten mit Mengenangaben verfügbar.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /food tab -->
 
 <!-- Delete confirmation modal (global) -->
 <div x-show="showDeleteConfirm" x-cloak style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:999;display:flex;align-items:center;justify-content:center">
