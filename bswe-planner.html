@@ -354,8 +354,8 @@ h2 { font-size: 1.02rem; font-weight: 700; }
       <template x-if="!editingEventName"><h3 x-text="currentEvent.name"></h3></template>
       <template x-if="editingEventName">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" x-model="tempEventName" style="font-size:1rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
-          <button class="btn btn-sm btn-primary" @click="currentEvent={...currentEvent,name:tempEventName};editingEventName=false">OK</button>
+          <input type="text" x-model="tempEventName" style="font-size:1rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px" @keydown.enter="renameEvent();editingEventName=false" @keydown.escape="editingEventName=false">
+          <button class="btn btn-sm btn-primary" @click="renameEvent();editingEventName=false">OK</button>
           <button class="btn btn-sm btn-ghost" @click="editingEventName=false">✕</button>
         </div>
       </template>
@@ -1334,13 +1334,16 @@ function app() {
       this.tab='dates';
     },
 
+    renameEvent(){ this.currentEvent={...this.currentEvent,name:this.tempEventName}; scheduleSave(this); },
+
     // ── Participants ──
     isParticipant(id){ return this.currentParticipantIds.includes(id); },
     toggleParticipant(id){
       const i=this.currentParticipantIds.indexOf(id);
-      if(i>=0){if(this.currentParticipantIds.length>1)this.currentParticipantIds.splice(i,1);}
-      else this.currentParticipantIds.push(id);
+      if(i>=0){if(this.currentParticipantIds.length>1)this.currentParticipantIds=this.currentParticipantIds.filter((_,j)=>j!==i);}
+      else this.currentParticipantIds=[...this.currentParticipantIds,id];
       this.recalcSettlement();
+      scheduleSave(this);
     },
     peopleName(id){ return id==='admin'?'Admin':(this.allPeople.find(p=>p.id===id)||{}).name||id; },
 
