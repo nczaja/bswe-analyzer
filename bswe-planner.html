@@ -1455,6 +1455,20 @@ function app() {
     gameVoteCount(gameId, voteType) {
       return Object.values(this.gameVotes[gameId]||{}).filter(x=>x===voteType).length;
     },
+    gameAccentColor(game) {
+      // Handgepickte Farben für bekannte BGG-IDs, sonst deterministischer Hash
+      const known = {
+        237182:  '#5a7a3a', // Root — Waldgrün
+        291572:  '#7b5ea7', // Oath — Tiefviolett
+        382118:  '#2a6b8a', // Arcs — Weltraumblau
+        396790:  '#c26b8a', // Molly House — Altrosa
+        271971:  '#b5451b', // John Company — Imperialrot
+      };
+      if (known[game.id]) return known[game.id];
+      // Fallback: HSL-Hash aus game.id
+      const h = ((game.id * 2654435761) % 360 + 360) % 360;
+      return `hsl(${h}, 45%, 42%)`;
+    },
     async searchBGG() {
       if (!this.gameQuery.trim()) return;
       this.gameSearchLoading = true;
@@ -1810,61 +1824,72 @@ function app() {
 
   <!-- Spielkarten -->
   <template x-for="game in sortedGames" :key="game.id">
-    <div class="card" style="display:flex;gap:14px;padding:14px 16px;margin-bottom:10px">
-      <!-- Cover -->
-      <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block">
-        <img :src="game.thumbnail" alt=""
-             style="width:84px;height:84px;object-fit:cover;border-radius:8px;background:#f0ede8;display:block"
-             @error="$el.parentElement.style.display='none'">
-      </a>
-      <!-- Info -->
-      <div style="flex:1;min-width:0">
-        <!-- Titel + Badges -->
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-          <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
-          <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
-                :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
-                x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
-          <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
-        </div>
-        <!-- Spieler & Zeit -->
-        <div style="font-size:0.79rem;color:#999;margin-bottom:5px">
-          <span x-show="game.minPlayers">
-            👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
-            <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
-          </span>
-          <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
-            🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
-          </span>
-        </div>
-        <!-- Beschreibung -->
-        <p x-show="game.description" x-text="game.description"
-           style="font-size:0.8rem;color:#666;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
-        <!-- Links -->
-        <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
-          <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
-          <a :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
-          <a :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
-        </div>
-        <!-- Votes -->
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <template x-for="opt in [{v:'vollbock',l:'🤩 Voll Bock'},{v:'bock',l:'😊 Bock'},{v:'keinbock',l:'😐 Kein Bock'}]" :key="opt.v">
-            <button class="btn btn-sm"
-                    :style="(gameVotes[game.id]||{})[me]===opt.v
-                      ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
-                        :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
-                        :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
-                    @click="setGameVote(game.id, opt.v)">
-              <span x-text="opt.l"></span>
-              <span x-show="gameVoteCount(game.id, opt.v) > 0"
-                    x-text="' · '+gameVoteCount(game.id, opt.v)"
-                    style="opacity:0.6;font-size:0.85em"></span>
-            </button>
-          </template>
-          <!-- Admin: löschen -->
-          <button x-show="me==='nico'" class="btn btn-sm"
-                  style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
-                  @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
+    <div class="card" style="position:relative;overflow:hidden;padding:0;margin-bottom:10px;border:none">
+      <!-- Farbwelt-Hintergrund: geblurrtes Cover -->
+      <div x-show="game.thumbnail"
+           :style="`position:absolute;inset:0;background-image:url('${game.thumbnail}');background-size:cover;background-position:center;filter:blur(28px) saturate(1.1);opacity:0.22;transform:scale(1.35);z-index:0;pointer-events:none`"></div>
+      <!-- weißer Overlay-Gradient für Lesbarkeit -->
+      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0.82) 40%,rgba(255,255,255,0.95) 100%);z-index:1;pointer-events:none"></div>
+      <!-- Akzentlinie links -->
+      <div :style="`position:absolute;left:0;top:0;bottom:0;width:4px;background:${gameAccentColor(game)};z-index:2`"></div>
+
+      <!-- Content -->
+      <div style="position:relative;z-index:2;display:flex;gap:14px;padding:14px 16px 14px 20px">
+        <!-- Cover -->
+        <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block;align-self:flex-start">
+          <img :src="game.thumbnail" alt=""
+               style="width:80px;height:110px;object-fit:cover;border-radius:7px;display:block;box-shadow:0 2px 10px rgba(0,0,0,0.18)"
+               @error="$el.parentElement.style.display='none'">
+        </a>
+        <!-- Info -->
+        <div style="flex:1;min-width:0">
+          <!-- Titel + Badges -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
+            <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
+                  :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
+                  x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+            <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
+          </div>
+          <!-- Spieler & Zeit -->
+          <div style="font-size:0.79rem;color:#888;margin-bottom:5px">
+            <span x-show="game.minPlayers">
+              👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
+              <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
+            </span>
+            <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
+              🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
+            </span>
+          </div>
+          <!-- Beschreibung -->
+          <p x-show="game.description" x-text="game.description"
+             style="font-size:0.8rem;color:#555;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
+          <!-- Links -->
+          <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
+            <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
+            <a :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
+            <a :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
+          </div>
+          <!-- Votes -->
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
+              <button class="btn btn-sm"
+                      :style="(gameVotes[game.id]||{})[me]===opt.v
+                        ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
+                          :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
+                          :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
+                      @click="setGameVote(game.id, opt.v)">
+                <span x-text="opt.l"></span>
+                <span x-show="gameVoteCount(game.id, opt.v) > 0"
+                      x-text="' · '+gameVoteCount(game.id, opt.v)"
+                      style="opacity:0.6;font-size:0.85em"></span>
+              </button>
+            </template>
+            <!-- Admin: löschen -->
+            <button x-show="me==='nico'" class="btn btn-sm"
+                    style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
+                    @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
+          </div>
         </div>
       </div>
     </div>
