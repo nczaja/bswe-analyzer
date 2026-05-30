@@ -1970,50 +1970,60 @@ function app() {
   <!-- Einkaufsliste -->
   <div x-show="selectedMealIds.length > 0" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
 
-    <!-- Gesamtliste (links) -->
+    <!-- LINKS: Gesamtliste, nach Kategorien gegliedert -->
     <div class="card">
       <div class="card-header">
         <h3 style="font-size:0.95rem;font-weight:700">🛒 Einkaufsliste</h3>
         <span style="font-size:0.78rem;color:#aaa" x-text="currentParticipantIds.length+' Personen'"></span>
       </div>
-      <div style="padding:8px 16px">
-        <template x-for="item in shoppingList" :key="item.key">
-          <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f5f3f0">
-            <span style="font-size:0.88rem;flex:1" x-text="item.name"></span>
-            <span style="font-size:0.82rem;color:#444;font-weight:600;white-space:nowrap" x-text="item.display"></span>
-            <!-- Admin: Kategorie zuweisen -->
-            <select x-show="me==='admin'"
-                    style="font-size:0.72rem;border:1px solid #e0ddd8;border-radius:4px;padding:1px 4px;color:#888;background:#fff;max-width:100px;cursor:pointer"
-                    :value="(shoppingItemCategories||{})[item.key]||''"
-                    @change="shoppingItemCategories={...shoppingItemCategories,[item.key]:$event.target.value||null}">
-              <option value="">–</option>
-              <template x-for="cat in mealCategories" :key="cat.id">
-                <option :value="cat.id" x-text="cat.name"></option>
-              </template>
-            </select>
-            <!-- Manuell: löschen -->
-            <button x-show="item.manual" @click="removeManualShoppingItem(item.key)"
-                    style="background:none;border:none;color:#ccc;cursor:pointer;font-size:0.85rem;padding:0 2px;line-height:1">×</button>
+      <div style="padding:6px 16px 4px">
+        <template x-for="group in shoppingListGrouped()" :key="group.id">
+          <div style="margin-bottom:10px">
+            <!-- Kategorie-Header -->
+            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#aaa;padding:6px 0 3px;border-bottom:1px solid #ede9e4"
+                 x-text="group.name"></div>
+            <template x-for="item in group.items" :key="item.key">
+              <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f7f5f2">
+                <span style="font-size:0.88rem;flex:1" x-text="item.name"></span>
+                <span style="font-size:0.82rem;color:#444;font-weight:600;white-space:nowrap" x-text="item.display"></span>
+                <!-- Admin: Kategorie überschreiben -->
+                <select x-show="me==='admin'"
+                        style="font-size:0.7rem;border:1px solid #e8e5e0;border-radius:4px;padding:1px 3px;color:#aaa;background:#fff;cursor:pointer"
+                        :value="item.categoryId"
+                        @change="shoppingItemCategories={...shoppingItemCategories,[item.key]:$event.target.value}">
+                  <template x-for="cat in mealCategories" :key="cat.id">
+                    <option :value="cat.id" x-text="cat.name"></option>
+                  </template>
+                </select>
+                <!-- Manuell: löschen -->
+                <button x-show="item.manual" @click="removeManualShoppingItem(item.key)"
+                        style="background:none;border:none;color:#ccc;cursor:pointer;font-size:0.9rem;padding:0;line-height:1">×</button>
+              </div>
+            </template>
           </div>
         </template>
         <!-- Manuell hinzufügen -->
-        <div style="display:flex;gap:6px;padding:10px 0 4px">
+        <div style="display:flex;gap:5px;padding:8px 0 6px;flex-wrap:wrap">
           <input type="text" x-model="newManualItem"
-                 placeholder="+ Artikel hinzufügen"
+                 placeholder="Artikel"
                  @keydown.enter="addManualShoppingItem()"
-                 style="flex:1;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
+                 style="flex:2;min-width:100px;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
+          <input type="text" x-model="newManualItemAmount"
+                 placeholder="Menge (opt.)"
+                 @keydown.enter="addManualShoppingItem()"
+                 style="flex:1;min-width:70px;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
           <button class="btn btn-sm" @click="addManualShoppingItem()" :disabled="!newManualItem.trim()">+</button>
         </div>
       </div>
     </div>
 
-    <!-- Rechte Spalte: Kategorie-Zuweisung (admin) + persönliche Liste -->
+    <!-- RECHTS: Zuweisung + persönliche Liste -->
     <div style="display:flex;flex-direction:column;gap:10px">
 
-      <!-- Kategorie-Zuweisung (admin only) -->
+      <!-- Wer kauft was (admin) -->
       <div x-show="me==='admin'" class="card">
         <div class="card-header"><h3 style="font-size:0.88rem;font-weight:700">Wer kauft was?</h3></div>
-        <div style="padding:10px 16px">
+        <div style="padding:8px 16px">
           <template x-for="cat in mealCategories" :key="cat.id">
             <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f3f0">
               <span style="font-size:0.83rem;flex:1" x-text="cat.name"></span>
@@ -2032,10 +2042,9 @@ function app() {
 
       <!-- Persönliche Liste -->
       <div class="card" x-show="myShoppingItems().length > 0">
-        <div class="card-header" style="justify-content:space-between">
+        <div class="card-header">
           <h3 style="font-size:0.88rem;font-weight:700">Das besorge ich:</h3>
-          <button class="btn btn-sm" @click="copyMyShoppingList()" title="Als Markdown kopieren"
-                  style="font-size:0.75rem">📋 Kopieren</button>
+          <button class="btn btn-sm" @click="copyMyShoppingList()" style="font-size:0.75rem" title="Als Markdown kopieren">📋 Kopieren</button>
         </div>
         <div style="padding:8px 16px">
           <template x-for="item in myShoppingItems()" :key="item.key">
@@ -2047,13 +2056,12 @@ function app() {
         </div>
       </div>
 
-      <!-- Hinweis wenn noch keine Kategorie zugewiesen -->
-      <div x-show="me!=='admin' && myShoppingItems().length === 0"
-           style="font-size:0.82rem;color:#bbb;text-align:center;padding:16px 0">
+      <div x-show="me!=='admin' && myShoppingItems().length===0"
+           style="font-size:0.82rem;color:#bbb;text-align:center;padding:12px 0">
         Der Admin hat dir noch keine Einkaufskategorie zugewiesen.
       </div>
-
     </div>
+
   </div>
 
 </div><!-- /food tab -->
