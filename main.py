@@ -169,25 +169,21 @@ async def analyze_url(req: UrlRequest):
 
 
 BGG_BASE = "https://boardgamegeek.com/xmlapi2"
-BGG_USERNAME = os.environ.get("BGG_USERNAME", "")
-BGG_PASSWORD = os.environ.get("BGG_PASSWORD", "")
+BGG_TOKEN = os.environ.get("BGG_TOKEN", "")
 
 
 async def bgg_fetch(url: str) -> str:
-    """Login to BGG, then fetch XML API with authenticated session."""
-    from curl_cffi.requests import AsyncSession
-    async with AsyncSession() as session:
-        if BGG_USERNAME and BGG_PASSWORD:
-            await session.post(
-                "https://boardgamegeek.com/login/api/v1",
-                json={"credentials": {"username": BGG_USERNAME, "password": BGG_PASSWORD}},
-                impersonate="chrome120",
-                timeout=10,
-            )
-        r = await session.get(url, impersonate="chrome120", timeout=15)
-        if r.status_code == 202:
-            return "__RETRY__"
-        return r.text
+    """Fetch BGG XML API with Bearer token authorization."""
+    if not BGG_TOKEN:
+        raise HTTPException(status_code=503, detail="BGG_TOKEN nicht konfiguriert")
+    headers = {"Authorization": f"Bearer {BGG_TOKEN}"}
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url, headers=headers, timeout=15, follow_redirects=True)
+    if r.status_code == 202:
+        return "__RETRY__"
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"BGG returned {r.status_code}: {r.text[:200]}")
+    return r.text
 
 
 @app.get("/bgg/search")
@@ -195,7 +191,6 @@ async def bgg_search(q: str = Query(..., min_length=1)):
     try:
         url = f"{BGG_BASE}/search?query={q}&type=boardgame"
         xml_text = await bgg_fetch(url)
-        print("BGG response (first 300 chars):", repr(xml_text[:300]))
         root = ET.fromstring(xml_text)
         results = []
         for item in root.findall("item"):
