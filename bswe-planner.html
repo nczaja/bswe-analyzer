@@ -1516,8 +1516,16 @@ function app() {
 
     // ── Schedule logic ──
     get scheduleDays() {
-      if (!this.booking||!this.booking.checkin||!this.booking.checkout) return [];
-      const days=[], d=new Date(this.booking.checkin+'T12:00:00'), end=new Date(this.booking.checkout+'T12:00:00');
+      // Priorität: gebuchter Termin → fixierter Termin aus Abstimmung
+      let from, to;
+      if (this.booking && this.booking.checkin && this.booking.checkout) {
+        from = this.booking.checkin; to = this.booking.checkout;
+      } else if (this.finalDateId) {
+        const fd = this.dates.find(x => x.id === this.finalDateId);
+        if (fd && fd.from && fd.to) { from = fd.from; to = fd.to; }
+      }
+      if (!from || !to) return [];
+      const days=[], d=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
       while(d<=end){ days.push(d.toISOString().split('T')[0]); d.setDate(d.getDate()+1); }
       return days;
     },
@@ -1900,11 +1908,11 @@ function app() {
   <!-- ── SPIELPLAN ── -->
   <div x-show="gameSubTab==='schedule'">
 
-    <!-- Kein gebuchter Termin -->
-    <div x-show="!booking.checkin||!booking.checkout" class="card"
+    <!-- Kein Termin verfügbar -->
+    <div x-show="!finalDate && (!booking.checkin||!booking.checkout)" class="card"
          style="text-align:center;padding:48px 20px;opacity:0.45">
       <div style="font-size:2rem;margin-bottom:8px">📅</div>
-      <p style="font-size:0.88rem">Erst einen Termin buchen — dann kann der Spielplan befüllt werden.</p>
+      <p style="font-size:0.88rem">Erst einen Termin fixieren — dann kann der Spielplan befüllt werden.</p>
     </div>
 
     <!-- Tage -->
