@@ -881,7 +881,7 @@ const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentE
   'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
   'games','gameVotes','schedule',
   'recipes','foodVotes','selectedMealIds','foodLocked',
-  'manualShoppingItems','mealCategories','shoppingItemCategories'];
+  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories'];
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -967,12 +967,16 @@ function app() {
     manualShoppingItems: [],
     newManualItem: '',
     newManualItemAmount: '',
-    mealCategories: [
-      {id:'c_kochzutaten', name:'Kochzutaten', personId:null},
-      {id:'c_getraenke',   name:'Getränke',    personId:null},
-      {id:'c_fruehstueck', name:'Frühstück',   personId:null},
-      {id:'c_snacks',      name:'Snacks',      personId:null},
-    ],
+    get mealCategories() {
+      const ids = this.mealCategoryPersonIds || {};
+      return [
+        {id:'c_kochzutaten', name:'Kochzutaten', personId: ids['c_kochzutaten']||null},
+        {id:'c_getraenke',   name:'Getränke',    personId: ids['c_getraenke']||null},
+        {id:'c_fruehstueck', name:'Frühstück',   personId: ids['c_fruehstueck']||null},
+        {id:'c_snacks',      name:'Snacks',      personId: ids['c_snacks']||null},
+      ];
+    },
+    mealCategoryPersonIds: {},
     shoppingItemCategories: {},
 
     // ── Games ──
@@ -2029,7 +2033,7 @@ function app() {
               <span style="font-size:0.83rem;flex:1" x-text="cat.name"></span>
               <select style="font-size:0.8rem;border:1px solid #e0ddd8;border-radius:5px;padding:3px 6px;background:#fff;cursor:pointer"
                       :value="cat.personId||''"
-                      @change="mealCategories=mealCategories.map(c=>c.id===cat.id?{...c,personId:$event.target.value||null}:c)">
+                      @change="mealCategoryPersonIds={...mealCategoryPersonIds,[cat.id]:$event.target.value||null}">
                 <option value="">– niemand –</option>
                 <template x-for="p in eventParticipants" :key="p.id">
                   <option :value="p.id" x-text="p.name"></option>
