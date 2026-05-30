@@ -880,7 +880,8 @@ async function supabasePut(data) {
 const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
   'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
   'games','gameVotes','schedule',
-  'recipes','foodVotes','selectedMealIds','foodLocked','mealAssignments'];
+  'recipes','foodVotes','selectedMealIds','foodLocked',
+  'manualShoppingItems','mealCategories','shoppingItemCategories'];
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -891,6 +892,39 @@ function scheduleSave(appState) {
     supabasePut(snapshot);
   }, 1500);
 }
+
+// ── Smart rounding for shopping list ──
+const COUNTABLE_UNITS = new Set(['','stück','stk','zehe','zehen','scheibe','scheiben',
+  'dose','dosen','flasche','flaschen','bund','bünde','kopf','köpfe',
+  'blatt','blätter','ei','eier','prise','prisen','pkg','packung','packungen',
+  'stange','stangen','becher','tube','tuben','glas','gläser']);
+function smartRound(amount, unit) {
+  if (!amount || amount <= 0) return { val: null, unit };
+  const u = (unit || '').toLowerCase().trim();
+  if (COUNTABLE_UNITS.has(u)) return { val: Math.max(1, Math.ceil(amount)), unit };
+  if (u === 'g') {
+    const v = amount >= 500 ? Math.round(amount/50)*50
+            : amount >= 100 ? Math.round(amount/10)*10
+            : amount >= 20  ? Math.round(amount/5)*5 : Math.round(amount);
+    return { val: v, unit };
+  }
+  if (u === 'ml') {
+    const v = amount >= 500 ? Math.round(amount/50)*50
+            : amount >= 100 ? Math.round(amount/25)*25 : Math.round(amount/10)*10;
+    return { val: v, unit };
+  }
+  if (u === 'kg' || u === 'l') return { val: Math.round(amount*10)/10, unit };
+  if (['el','tl','esslöffel','teelöffel'].includes(u)) return { val: Math.round(amount*2)/2, unit };
+  // Default: 1 decimal max
+  return { val: Math.round(amount*10)/10, unit };
+}
+function fmtAmount(amount, unit) {
+  const { val, unit: u } = smartRound(amount, unit);
+  if (val === null) return u || '';
+  const s = Number.isInteger(val) ? String(val) : val.toFixed(1);
+  return s + (u ? ' ' + u : '');
+}
+const WATER_KEYS = ['wasser','mineralwasser','leitungswasser'];
 
 const LOADING_STEPS=['Seite wird geladen...','Texte und Bilder analysieren...','Schlaf- und Zimmeranzahl ermitteln...','Lage und Bahnhof suchen...','Ausstattung prüfen...','Karte wird befüllt ✓'];
 
@@ -912,12 +946,21 @@ function app() {
     foodVotes: {},
     selectedMealIds: [],
     foodLocked: false,
-    mealAssignments: {},
     foodSortBy: 'votes',
     foodFilters: [],
     recipeInput: '',
     analyzingRecipe: false,
     recipeError: '',
+    manualShoppingItems: [],
+    newManualItem: '',
+    mealCategories: [
+      {id:'c_getraenke',   name:'Getränke',      personId:null},
+      {id:'c_obst',        name:'Obst & Gemüse', personId:null},
+      {id:'c_trockenwaren',name:'Trockenwaren',  personId:null},
+      {id:'c_milch',       name:'Milch & Käse',  personId:null},
+      {id:'c_sonstiges',   name:'Sonstiges',     personId:null},
+    ],
+    shoppingItemCategories: {},
 
     // ── Games ──
     games: [],
@@ -1419,22 +1462,50 @@ function app() {
         const factor = n / r.servings;
         for (const ing of r.ingredients) {
           const key = ing.name.toLowerCase().trim();
+          if (WATER_KEYS.some(w => key === w || key.startsWith(w))) continue;
           if (!combined[key]) combined[key] = { name: ing.name, amount: 0, hasAmount: false, unit: ing.unit };
           if (ing.amount) { combined[key].amount += ing.amount * factor; combined[key].hasAmount = true; }
         }
       }
-      return Object.values(combined)
-        .map(x => {
-          let display = '';
-          if (x.hasAmount) {
-            const rounded = Math.round(x.amount * 10) / 10;
-            display = (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + (x.unit ? ' ' + x.unit : '');
-          } else {
-            display = x.unit || '';
-          }
-          return { key: x.name, name: x.name, display };
-        })
+      const auto = Object.values(combined)
+        .map(x => ({
+          key: x.name,
+          name: x.name,
+          display: x.hasAmount ? fmtAmount(x.amount, x.unit) : (x.unit || ''),
+          manual: false,
+        }))
         .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      const breakfast = { key:'__fruehstueck', name:'🥐 Frühstück', display:'× '+this.mealsNeeded, manual:false, pinned:true };
+      const manual = (this.manualShoppingItems||[]).map(x=>({...x, manual:true}));
+      return [breakfast, ...auto, ...manual];
+    },
+
+    myShoppingItems() {
+      return this.shoppingList.filter(item => {
+        const catId = (this.shoppingItemCategories||{})[item.key];
+        if (!catId) return false;
+        const cat = (this.mealCategories||[]).find(c => c.id === catId);
+        return cat?.personId === this.me;
+      });
+    },
+
+    copyMyShoppingList() {
+      const items = this.myShoppingItems();
+      if (!items.length) return;
+      const who = this.allPeople.find(p => p.id === this.me)?.name || this.me;
+      const lines = items.map(i => `- ${i.name}${i.display ? ': ' + i.display : ''}`).join('\n');
+      navigator.clipboard.writeText(`**Das besorge ich (${who}):**\n${lines}`);
+    },
+
+    addManualShoppingItem() {
+      const name = (this.newManualItem||'').trim();
+      if (!name) return;
+      (this.manualShoppingItems||[]).push({ key:'m_'+Date.now(), name, display:'' });
+      this.newManualItem = '';
+    },
+
+    removeManualShoppingItem(key) {
+      this.manualShoppingItems = (this.manualShoppingItems||[]).filter(x => x.key !== key);
     },
 
     foodScore(id) {
@@ -1875,24 +1946,91 @@ function app() {
   </div>
 
   <!-- Einkaufsliste -->
-  <div x-show="selectedMealIds.length > 0" style="margin-top:16px">
+  <div x-show="selectedMealIds.length > 0" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+
+    <!-- Gesamtliste (links) -->
     <div class="card">
       <div class="card-header">
         <h3 style="font-size:0.95rem;font-weight:700">🛒 Einkaufsliste</h3>
         <span style="font-size:0.78rem;color:#aaa" x-text="currentParticipantIds.length+' Personen'"></span>
       </div>
-      <div class="card-body" style="padding:10px 20px">
+      <div style="padding:8px 16px">
         <template x-for="item in shoppingList" :key="item.key">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f5f3f0">
-            <span style="font-size:0.88rem" x-text="item.name"></span>
-            <span style="font-size:0.82rem;color:#444;font-weight:600;margin-left:16px;white-space:nowrap" x-text="item.display"></span>
+          <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f5f3f0">
+            <span style="font-size:0.88rem;flex:1" x-text="item.name"></span>
+            <span style="font-size:0.82rem;color:#444;font-weight:600;white-space:nowrap" x-text="item.display"></span>
+            <!-- Admin: Kategorie zuweisen -->
+            <select x-show="me==='admin'"
+                    style="font-size:0.72rem;border:1px solid #e0ddd8;border-radius:4px;padding:1px 4px;color:#888;background:#fff;max-width:100px;cursor:pointer"
+                    :value="(shoppingItemCategories||{})[item.key]||''"
+                    @change="shoppingItemCategories={...shoppingItemCategories,[item.key]:$event.target.value||null}">
+              <option value="">–</option>
+              <template x-for="cat in mealCategories" :key="cat.id">
+                <option :value="cat.id" x-text="cat.name"></option>
+              </template>
+            </select>
+            <!-- Manuell: löschen -->
+            <button x-show="item.manual" @click="removeManualShoppingItem(item.key)"
+                    style="background:none;border:none;color:#ccc;cursor:pointer;font-size:0.85rem;padding:0 2px;line-height:1">×</button>
           </div>
         </template>
-        <div x-show="shoppingList.length === 0"
-             style="color:#bbb;font-size:0.83rem;padding:10px 0;text-align:center">
-          Keine Zutaten mit Mengenangaben verfügbar.
+        <!-- Manuell hinzufügen -->
+        <div style="display:flex;gap:6px;padding:10px 0 4px">
+          <input type="text" x-model="newManualItem"
+                 placeholder="+ Artikel hinzufügen"
+                 @keydown.enter="addManualShoppingItem()"
+                 style="flex:1;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
+          <button class="btn btn-sm" @click="addManualShoppingItem()" :disabled="!newManualItem.trim()">+</button>
         </div>
       </div>
+    </div>
+
+    <!-- Rechte Spalte: Kategorie-Zuweisung (admin) + persönliche Liste -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <!-- Kategorie-Zuweisung (admin only) -->
+      <div x-show="me==='admin'" class="card">
+        <div class="card-header"><h3 style="font-size:0.88rem;font-weight:700">Wer kauft was?</h3></div>
+        <div style="padding:10px 16px">
+          <template x-for="cat in mealCategories" :key="cat.id">
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f3f0">
+              <span style="font-size:0.83rem;flex:1" x-text="cat.name"></span>
+              <select style="font-size:0.8rem;border:1px solid #e0ddd8;border-radius:5px;padding:3px 6px;background:#fff;cursor:pointer"
+                      :value="cat.personId||''"
+                      @change="mealCategories=mealCategories.map(c=>c.id===cat.id?{...c,personId:$event.target.value||null}:c)">
+                <option value="">– niemand –</option>
+                <template x-for="p in eventParticipants" :key="p.id">
+                  <option :value="p.id" x-text="p.name"></option>
+                </template>
+              </select>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Persönliche Liste -->
+      <div class="card" x-show="myShoppingItems().length > 0">
+        <div class="card-header" style="justify-content:space-between">
+          <h3 style="font-size:0.88rem;font-weight:700">Das besorge ich:</h3>
+          <button class="btn btn-sm" @click="copyMyShoppingList()" title="Als Markdown kopieren"
+                  style="font-size:0.75rem">📋 Kopieren</button>
+        </div>
+        <div style="padding:8px 16px">
+          <template x-for="item in myShoppingItems()" :key="item.key">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #f5f3f0">
+              <span style="font-size:0.88rem" x-text="item.name"></span>
+              <span style="font-size:0.82rem;color:#444;font-weight:600;white-space:nowrap" x-text="item.display"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Hinweis wenn noch keine Kategorie zugewiesen -->
+      <div x-show="me!=='admin' && myShoppingItems().length === 0"
+           style="font-size:0.82rem;color:#bbb;text-align:center;padding:16px 0">
+        Der Admin hat dir noch keine Einkaufskategorie zugewiesen.
+      </div>
+
     </div>
   </div>
 
