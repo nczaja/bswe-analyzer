@@ -1131,11 +1131,11 @@ function app() {
       // Mock-Daten für Testing (bis BGG-API freigegeben): games auffüllen wenn leer
       if (!this.games || this.games.length === 0) {
         this.games = [
-          { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-          { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-          { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-          { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-          { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', rating: '8.0', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', rating: '8.2', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', rating: '8.4', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', rating: '7.9', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', rating: '8.3', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
         ];
         scheduleSave(this);
       }
@@ -1572,83 +1572,145 @@ function app() {
       const cat = game.durationCat || (game.maxPlaytime<=90?'kurz':game.maxPlaytime<=180?'mittel':'lang');
       return cat==='kurz'?1:cat==='mittel'?2:4;
     },
-    daySlotsFilled(dateStr) {
-      return (this.schedule[dateStr]||[]).reduce((s,gid)=>{
-        const g=this.games.find(x=>x.id===gid); return s+(g?this.gameSlots(g):0);
-      },0);
+    // Schedule: positionsbasiertes Modell {slotIndex: gid}
+    // Migration von altem Array-Format
+    migrateScheduleDay(val) {
+      if (!val || typeof val !== 'object') return {};
+      if (Array.isArray(val)) {
+        let pos = 0; const result = {};
+        for (const gid of val) {
+          const g = this.games.find(x => x.id === gid || x.id === +gid);
+          result[pos] = isNaN(gid) ? gid : +gid;
+          pos += g ? this.gameSlots(g) : 1;
+        }
+        return result;
+      }
+      return Object.fromEntries(Object.entries(val).map(([k,v]) => [k, isNaN(v)?v:+v]));
     },
-    daySlotsFree(dateStr) { return Math.max(0,8-this.daySlotsFilled(dateStr)); },
+    scheduleForDay(dateStr) {
+      const raw = this.schedule[dateStr];
+      if (!raw) return {};
+      if (Array.isArray(raw)) {
+        const migrated = this.migrateScheduleDay(raw);
+        // Persist migration
+        this.schedule = {...this.schedule, [dateStr]: migrated};
+        return migrated;
+      }
+      return raw;
+    },
+    occupiedSlots(dateStr) {
+      const occ = new Set();
+      for (const [si, gid] of Object.entries(this.scheduleForDay(dateStr))) {
+        const g = this.games.find(x => x.id === gid || x.id === +gid);
+        const span = g ? this.gameSlots(g) : 1;
+        for (let i = 0; i < span; i++) occ.add(parseInt(si) + i);
+      }
+      return occ;
+    },
+    emptySlots(dateStr) {
+      const occ = this.occupiedSlots(dateStr);
+      return Array.from({length: 9}, (_, i) => i).filter(i => !occ.has(i));
+    },
+    daySlotsFilled(dateStr) {
+      return Object.values(this.scheduleForDay(dateStr)).reduce((s, gid) => {
+        const g = this.games.find(x => x.id === gid || x.id === +gid);
+        return s + (g ? this.gameSlots(g) : 0);
+      }, 0);
+    },
+    daySlotsFree(dateStr) { return Math.max(0, 9 - this.daySlotsFilled(dateStr)); },
     daySlotDisplay(dateStr) {
-      const slots=Array(8).fill(null);
-      const colors=['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc'];
-      let pos=0;
-      (this.schedule[dateStr]||[]).forEach((gid,idx)=>{
-        const g=this.games.find(x=>x.id===gid); if(!g)return;
-        const color=colors[idx%colors.length];
-        for(let i=0;i<this.gameSlots(g)&&pos<8;i++,pos++) slots[pos]={name:g.name,color};
+      const slots = Array(9).fill(null);
+      const colors = ['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc','#d7ccc8'];
+      const entries = Object.entries(this.scheduleForDay(dateStr)).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);
+      entries.forEach(([start, gid], idx) => {
+        const g = this.games.find(x => x.id === gid || x.id === +gid); if(!g) return;
+        const color = colors[idx % colors.length];
+        for (let i = 0; i < this.gameSlots(g) && start+i < 9; i++) slots[start+i] = {name:g.name, color};
       });
       return slots;
     },
-    scheduleAdd(dateStr,gameId) {
+    scheduleAddAtSlot(dateStr, slotIndex, gameId) {
       gameId = isNaN(gameId) ? gameId : +gameId;
-      const game=this.games.find(g=>g.id===gameId);
-      if(!game||this.daySlotsFree(dateStr)<this.gameSlots(game)) return;
-      const s={...this.schedule};
-      if(!s[dateStr])s[dateStr]=[];
-      if(!s[dateStr].includes(gameId)){ s[dateStr]=[...s[dateStr],gameId]; this.schedule=s; scheduleSave(this); }
+      const game = this.games.find(g => g.id === gameId);
+      if (!game) return;
+      const span = this.gameSlots(game);
+      const occ = this.occupiedSlots(dateStr);
+      for (let i = 0; i < span; i++) { if (occ.has(slotIndex + i) || slotIndex + i > 8) return; }
+      const day = this.scheduleForDay(dateStr);
+      if (Object.values(day).map(v=>isNaN(v)?v:+v).includes(gameId)) return; // already placed
+      this.schedule = {...this.schedule, [dateStr]: {...day, [slotIndex]: gameId}};
+      scheduleSave(this);
     },
-    scheduleRemove(dateStr,gameId) {
-      const s={...this.schedule};
-      if(s[dateStr]){ s[dateStr]=s[dateStr].filter(id=>id!==gameId); this.schedule=s; scheduleSave(this); }
+    scheduleAdd(dateStr, gameId) {
+      // Dropdown: place at first available consecutive run of slots
+      gameId = isNaN(gameId) ? gameId : +gameId;
+      const game = this.games.find(g => g.id === gameId);
+      if (!game) return;
+      const span = this.gameSlots(game);
+      const free = this.emptySlots(dateStr);
+      for (let i = 0; i <= free.length - span; i++) {
+        const run = free.slice(i, i + span);
+        if (run[run.length-1] - run[0] === span - 1) { this.scheduleAddAtSlot(dateStr, run[0], gameId); return; }
+      }
+    },
+    scheduleRemove(dateStr, gameId) {
+      gameId = isNaN(gameId) ? gameId : +gameId;
+      const day = {...this.scheduleForDay(dateStr)};
+      for (const [k, v] of Object.entries(day)) { if ((isNaN(v)?v:+v) === gameId) delete day[k]; }
+      this.schedule = {...this.schedule, [dateStr]: day};
+      scheduleSave(this);
     },
     gamesAvailableForDay(dateStr) {
-      const assigned=this.schedule[dateStr]||[], free=this.daySlotsFree(dateStr);
-      return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
+      const assigned = new Set(Object.values(this.scheduleForDay(dateStr)).map(v=>isNaN(v)?v:+v));
+      return this.games.filter(g => !assigned.has(g.id));
     },
 
     // ── Schedule Drag & Drop ──
     scheduleDragGid: null,
     scheduleDragDay: null,
-    scheduleDragOver: null, // 'day|gid' or 'day|__end'
+    scheduleDragOver: null, // 'day|slotIndex'
 
     scheduleDragStart(day, gid, ev) {
       this.scheduleDragGid = gid;
       this.scheduleDragDay = day;
       ev.dataTransfer.effectAllowed = 'move';
     },
-    scheduleDragOverTarget(day, gid, ev) {
+    scheduleDragOverSlot(day, slotIndex, ev) {
       if (!this.scheduleDragGid) return;
+      // Check if game fits at this slot
+      const game = this.games.find(g => g.id === this.scheduleDragGid || g.id === +this.scheduleDragGid);
+      if (!game) return;
       ev.preventDefault();
       ev.dataTransfer.dropEffect = 'move';
-      this.scheduleDragOver = day + '|' + gid;
+      this.scheduleDragOver = day + '|' + slotIndex;
     },
-    scheduleDrop(targetDay, targetGid) {
+    scheduleDrop(targetDay, targetSlot) {
       const srcGid = this.scheduleDragGid;
       const srcDay = this.scheduleDragDay;
       this.scheduleDragOver = null;
       this.scheduleDragGid = null;
       this.scheduleDragDay = null;
-      if (!srcGid || srcGid === targetGid) return;
-      const s = JSON.parse(JSON.stringify(this.schedule));
-      // Aus Quell-Tag entfernen
-      s[srcDay] = (s[srcDay]||[]).filter(id => id !== srcGid);
-      // In Ziel-Tag einfügen (vor targetGid, oder ans Ende wenn __end)
-      if (!s[targetDay]) s[targetDay] = [];
-      if (targetGid === '__end') {
-        s[targetDay] = [...s[targetDay], srcGid];
-      } else {
-        const idx = s[targetDay].indexOf(targetGid);
-        s[targetDay] = idx >= 0
-          ? [...s[targetDay].slice(0,idx), srcGid, ...s[targetDay].slice(idx)]
-          : [...s[targetDay], srcGid];
-      }
-      this.schedule = s;
-      scheduleSave(this);
+      if (srcGid == null) return;
+      this.scheduleRemove(srcDay, srcGid);
+      this.scheduleAddAtSlot(targetDay, targetSlot, srcGid);
     },
     scheduleDragEnd() {
       this.scheduleDragOver = null;
       this.scheduleDragGid = null;
       this.scheduleDragDay = null;
+    },
+    slotDropFits(day, slotIndex) {
+      if (!this.scheduleDragGid) return false;
+      const game = this.games.find(g => g.id === this.scheduleDragGid || g.id === +this.scheduleDragGid);
+      if (!game) return false;
+      const span = this.gameSlots(game);
+      const occ = this.occupiedSlots(day);
+      // Temporarily remove dragged game's own slots
+      const sch = this.scheduleForDay(day);
+      const dragStart = +Object.entries(sch).find(([,v])=>(isNaN(v)?v:+v)===this.scheduleDragGid)?.[0];
+      const tempOcc = new Set([...occ].filter(s => isNaN(dragStart) || s < dragStart || s >= dragStart + this.gameSlots(game)));
+      for (let i = 0; i < span; i++) { if (tempOcc.has(slotIndex + i) || slotIndex + i > 8) return false; }
+      return true;
     },
 
     // ── Schedule: Anwesenheit ──
@@ -1673,50 +1735,40 @@ function app() {
         return presentAtStart && presentAtEnd;
       }).length;
     },
-    // Alle 8 Spielerzahlen für einen Tag
+    // Alle 9 Spielerzahlen für einen Tag
     dayPlayerCounts(dateStr) {
-      return Array.from({length:8}, (_,i) => this.slotPlayerCount(dateStr, i));
+      return Array.from({length:9}, (_,i) => this.slotPlayerCount(dateStr, i));
     },
-    // Erster Slot mit ≥2 Spielern; letzter Slot vor Abreise
     dayFirstSlot(dateStr) {
       const counts = this.dayPlayerCounts(dateStr);
-      for (let i=0; i<8; i++) if (counts[i] >= 2) return i;
+      for (let i=0; i<9; i++) if (counts[i] >= 2) return i;
       return 0;
     },
     dayLastSlot(dateStr) {
-      // Harte Obergrenze: Checkout der Unterkunft
       let checkout = null;
       if (this.booking && this.booking.checkout) checkout = new Date(this.booking.checkout);
       if (!checkout && this.finalDateId) {
         const fd = this.dates.find(x=>x.id===this.finalDateId);
         if (fd && fd.to) checkout = new Date(fd.to+'T23:00:00');
       }
-      // Letzter Slot mit ≥2 Spielern (und innerhalb Checkout)
-      for (let i=7; i>=0; i--) {
+      for (let i=8; i>=0; i--) {
         const slotEnd = this.slotDateTime(dateStr, i+1);
         if (checkout && slotEnd > checkout) continue;
         if (this.slotPlayerCount(dateStr, i) >= 2) return i;
       }
       return 0;
     },
-    // Mismatch: Spieler außerhalb minPlayers–maxPlayers während eines belegten Spiels?
     gameHasPlayerMismatch(dateStr, gameId) {
-      const game = this.games.find(g=>g.id===gameId);
+      const game = this.games.find(g=>g.id===gameId||g.id===+gameId);
       if (!game) return false;
-      const slots = this.schedule[dateStr]||[];
-      let pos = 0;
-      for (const gid of slots) {
-        const g = this.games.find(x=>x.id===gid);
-        const span = g ? this.gameSlots(g) : 1;
-        if (gid === gameId) {
-          for (let i=0; i<span; i++) {
-            const count = this.slotPlayerCount(dateStr, pos+i);
-            if (game.minPlayers && count < game.minPlayers) return true;
-            if (game.maxPlayers && count > game.maxPlayers) return true;
-          }
-          return false;
-        }
-        pos += span;
+      const sch = this.scheduleForDay(dateStr);
+      const startSlot = +Object.entries(sch).find(([,v])=>(isNaN(v)?v:+v)===gameId)?.[0];
+      if (isNaN(startSlot)) return false;
+      const span = this.gameSlots(game);
+      for (let i=0; i<span; i++) {
+        const count = this.slotPlayerCount(dateStr, startSlot+i);
+        if (game.minPlayers && count < game.minPlayers) return true;
+        if (game.maxPlayers && count > game.maxPlayers) return true;
       }
       return false;
     },
@@ -2088,7 +2140,7 @@ function app() {
           <div>
             <span style="font-weight:700;font-size:0.95rem" x-text="formatDay(day)"></span>
             <span style="color:#bbb;font-size:0.78rem;margin-left:6px"
-                  x-text="daySlotsFilled(day)+'/8 Slots · '+daySlotsFree(day)+' frei (bis 23:00)'"></span>
+                  x-text="daySlotsFilled(day)+'/9 Slots · '+daySlotsFree(day)+' frei (bis 00:30)'"></span>
           </div>
           <div style="display:flex;gap:2px" :title="daySlotsFree(day)+' Slots frei'">
             <template x-for="(slot,si) in daySlotDisplay(day)" :key="si">
@@ -2099,9 +2151,9 @@ function app() {
           </div>
         </div>
 
-        <!-- Uhrzeiten-Leiste + Spielerzahl -->
-        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:3px">
-          <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30']" :key="i">
+        <!-- Uhrzeiten-Leiste + Spielerzahl (9 Slots, endet 00:30) -->
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:3px">
+          <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30','23:00']" :key="i">
             <div style="text-align:center;line-height:1.3"
                  :style="(i < dayFirstSlot(day) || i > dayLastSlot(day)) ? 'opacity:0.3' : ''">
               <div style="font-size:0.6rem;color:#aaa" x-text="t"></div>
@@ -2112,49 +2164,48 @@ function app() {
           </template>
         </div>
 
-        <!-- Kachel-Grid -->
-        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px"
-             @dragover.prevent @drop="scheduleDrop(day,'__end')">
-          <!-- Belegte Kacheln -->
-          <template x-for="gid in (schedule[day]||[])" :key="gid">
-            <div x-data="{get g(){return games.find(x=>x.id===gid)}, get sp(){return gameSlots(games.find(x=>x.id===gid))}}"
-                 x-show="games.find(x=>x.id===gid)"
+        <!-- Kachel-Grid: positionsbasiert, explizite grid-column -->
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;min-height:110px;margin-bottom:8px;position:relative">
+          <!-- Belegte Kacheln (explizite Start-Positionen) -->
+          <template x-for="[si, gid] in Object.entries(scheduleForDay(day)).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0])" :key="String(si)+'-'+gid">
+            <div x-data="{get g(){return games.find(x=>x.id===gid||x.id===+gid)}, get sp(){return gameSlots(games.find(x=>x.id===gid||x.id===+gid))}}"
+                 x-show="!!games.find(x=>x.id===gid||x.id===+gid)"
                  :draggable="me==='admin'"
                  @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
                  @dragend="scheduleDragEnd()"
-                 @dragover="me==='admin' && scheduleDragOverTarget(day, gid, $event)"
-                 @drop.stop="me==='admin' && scheduleDrop(day, gid)"
-                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
-                   + (scheduleDragGid===gid ? 'opacity:0.4;' : '')
-                   + (scheduleDragOver===day+'|'+gid ? 'box-shadow:inset 3px 0 0 #1a73e8;' : '')
+                 :style="'grid-column:'+(si+1)+' / span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                   + ((scheduleDragGid===gid||scheduleDragGid===+gid) ? 'opacity:0.4;' : '')
                    + (gameHasPlayerMismatch(day,gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
                    + (me==='admin' ? 'cursor:grab;' : '')">
               <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
               <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
               <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
                 <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
-                <div x-show="gameHasPlayerMismatch(day,gid)"
-                     style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
+                <div x-show="gameHasPlayerMismatch(day,gid)" style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
               </div>
               <button x-show="me==='admin'" @click.stop="scheduleRemove(day,gid)"
                       style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
             </div>
           </template>
-          <!-- Freie Slot-Platzhalter -->
-          <template x-for="(_, fi) in Array.from({length: daySlotsFree(day)})" :key="'e'+fi">
-            <div x-data="{si: (schedule[day]||[]).reduce((s,gid)=>s+gameSlots(games.find(x=>x.id===gid)),0)+fi}"
-                 @dragover="me==='admin' && scheduleDragOverTarget(day, '__end', $event)"
-                 @drop.stop="me==='admin' && scheduleDrop(day, '__end')"
-                 :style="(si < dayFirstSlot(day) || si > dayLastSlot(day))
-                   ? 'border:1px dashed #e0ddd8;border-radius:8px;background:#f5f5f3;opacity:0.4'
-                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7;'
-                     +(scheduleDragOver===day+'|__end'?'background:#e8f0fe;border-color:#1a73e8;':'')">
+          <!-- Freie Slot-Platzhalter: jeder Slot einzeln als Drop-Target -->
+          <template x-for="si in emptySlots(day)" :key="'e'+si">
+            <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
+                 @dragleave="scheduleDragOver=null"
+                 @drop.stop="me==='admin' && scheduleDrop(day, si)"
+                 :style="'grid-column:'+(si+1)+';border-radius:8px;transition:background 0.1s,border 0.1s;'
+                   + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
+                     ? 'border:1px dashed #e0ddd8;background:#f5f5f3;opacity:0.4;'
+                     : scheduleDragOver===day+'|'+si && slotDropFits(day,si)
+                       ? 'border:2px solid #1a73e8;background:#e8f0fe;'
+                       : scheduleDragOver===day+'|'+si
+                         ? 'border:2px solid #e53935;background:#fce4ec;'
+                         : 'border:1px dashed #e0ddd8;background:#faf9f7;')">
             </div>
           </template>
         </div>
 
-        <!-- Leer-State (User, kein Spiel geplant) -->
-        <div x-show="(schedule[day]||[]).length===0 && me!=='admin'"
+        <!-- Leer-State -->
+        <div x-show="Object.keys(scheduleForDay(day)).length===0 && me!=='admin'"
              style="text-align:center;padding:16px;color:#ccc;font-size:0.82rem">
           Noch keine Spiele für diesen Tag geplant.
         </div>
