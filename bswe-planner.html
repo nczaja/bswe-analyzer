@@ -34,7 +34,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .landing-new-submit { width: 100%; padding: 10px; border-radius: 8px; background: #1a1a1a; color: #fff; border: none; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
 .landing-new-submit:disabled { background: #ccc; cursor: not-allowed; }
 .landing-new-cancel { background: none; border: none; color: #aaa; font-size: 0.77rem; cursor: pointer; margin-top: 10px; text-decoration: underline; width: 100%; text-align: center; }
-.identity-toast { font-size: 0.75rem; color: #4a7c59; font-weight: 600; }
+.identity-toast { font-size: 0.75rem; color: #4a7c59; font-weight: 600; transition: opacity 0.5s; }
 
 /* ── APP CHROME ── */
 .app-header { background: #1a1a1a; color: #f5f4f0; padding: 16px 24px; display: flex; align-items: baseline; gap: 12px; }
@@ -158,8 +158,11 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .info-item { background: #fafaf8; border-radius: 8px; padding: 13px; }
 .info-item .lbl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin-bottom: 4px; }
 .info-item .val { font-size: 0.92rem; font-weight: 600; }
-.arrival-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.arrival-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .arrival-name { font-size: 0.84rem; font-weight: 600; width: 90px; flex-shrink: 0; }
+.arrival-dt { font-size: 0.78rem; height: 34px; border: 1px solid #e0ddd8; border-radius: 6px; padding: 0 7px; background: #fff; color: #1a1a1a; flex: 1; min-width: 0; }
+.arrival-dt:disabled { opacity: 0.4; background: #f5f5f3; }
+.arrival-lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #aaa; letter-spacing: 0.06em; }
 
 /* Übersicht */
 .event-card { background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 20px; transition: border-color 0.15s; }
@@ -216,46 +219,6 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 
 h2 { font-size: 1.02rem; font-weight: 700; }
 [x-cloak] { display: none !important; }
-
-/* ── STATS ── */
-.stats-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #f0ede8; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-.stats-hero-item { background: #fff; padding: 16px; text-align: center; }
-.stats-hero-num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em; }
-.stats-hero-lbl { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #aaa; margin-top: 3px; }
-@media (max-width: 540px) { .stats-hero { grid-template-columns: 1fr 1fr; } }
-
-.dropzone { border: 2px dashed #d0cdc8; border-radius: 12px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.15s; background: #fafaf8; }
-.dropzone:hover, .dropzone.dz-over { border-color: #1a1a1a; background: #f0ede8; }
-.dropzone input[type=file] { display: none; }
-
-.lb-table { width: 100%; border-collapse: collapse; }
-.lb-table th { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; padding: 6px 10px; text-align: left; border-bottom: 1px solid #f0ede8; }
-.lb-table th.r { text-align: right; }
-.lb-table td { padding: 11px 10px; border-top: 1px solid #f5f3f0; font-size: 0.88rem; vertical-align: middle; }
-.lb-table tr:hover td { background: #fafaf8; }
-.lb-rank { font-size: 1rem; font-weight: 800; color: #ccc; width: 28px; }
-.lb-rank.gold { color: #c9a227; }
-.lb-rank.silver { color: #9e9e9e; }
-.lb-rank.bronze { color: #a0714f; }
-
-.win-track { height: 8px; border-radius: 4px; background: #f0ede8; position: relative; flex: 1; overflow: visible; }
-.win-bar { height: 100%; border-radius: 4px; background: #1a1a1a; transition: width 0.5s; }
-.win-expected { position: absolute; top: -2px; width: 2px; height: 12px; background: #bbb; border-radius: 1px; }
-.win-delta { font-size: 0.75rem; font-weight: 700; min-width: 38px; text-align: right; }
-.delta-pos { color: #2a7a2a; }
-.delta-neg { color: #d9534f; }
-.delta-neu { color: #aaa; }
-
-.games-table { width: 100%; border-collapse: collapse; }
-.games-table th { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; padding: 6px 10px; text-align: left; border-bottom: 1px solid #f0ede8; }
-.games-table td { padding: 10px; border-top: 1px solid #f5f3f0; font-size: 0.85rem; vertical-align: middle; }
-.games-table tr:hover td { background: #fafaf8; }
-.game-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 5px; margin-right: 8px; vertical-align: middle; }
-
-.map-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f5f3f0; font-size: 0.85rem; }
-.map-name { font-weight: 600; flex: 1; }
-.map-arrow { color: #ccc; }
-.npc-chip { font-size: 0.68rem; background: #f0ede8; color: #888; border-radius: 20px; padding: 2px 8px; }
 </style>
 </head>
 <body x-data="app()" x-init="init()">
@@ -282,7 +245,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div style="text-align:center">
     <p style="color:#999;margin-top:20px;font-size:0.88rem">Wer bist du?</p>
 
-    <!-- Personen-Grid (alle bekannten Personen aus der DB) -->
+    <!-- Personen-Grid (alle bekannten Personen) -->
     <div class="landing-grid" x-show="allPeople.length > 0">
       <template x-for="p in allPeople" :key="p.id">
         <button class="landing-btn" @click="confirmIdentity(p.id)" x-text="p.name"></button>
@@ -361,7 +324,6 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     :class="{active: tab==='settlement', 'tab-disabled': currentEvent.archived}"
     @click="if(!currentEvent.archived) tab='settlement'"
     :title="currentEvent.archived ? 'Kein aktives Event' : ''">💶 Abrechnung</div>
-  <div class="tab" :class="{active: tab==='stats'}" @click="tab='stats'">📊 Stats</div>
 </div>
 
 <!-- ══════════════════════════ ÜBERSICHT ══ -->
@@ -549,8 +511,6 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                   <!-- Admin: set/unset button -->
                   <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#f0fdf4;color:#15803d;border:1px solid #86efac" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
                   <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
-                  <!-- Delete: proposer or admin, not fixiert -->
-                  <button x-show="(me===d.proposedBy || me==='admin') && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="dates=dates.filter(x=>x.id!==d.id);delete votes[d.id]">🗑</button>
                 </div>
               </td>
             </tr>
@@ -742,20 +702,51 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📍 Adresse</div><input type="text" x-model="booking.address" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Straße, PLZ Ort"></div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">👤 Vermieter</div><input type="text" x-model="booking.host" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Name / Plattform"></div>
         </div>
-        <template x-if="bookingMapUrl()">
-          <div style="margin-top:16px;border-radius:10px;overflow:hidden;border:1px solid #e0ddd8;height:160px">
-            <iframe :src="bookingMapUrl()" width="100%" height="100%" style="border:none;display:block" scrolling="no"></iframe>
+        <div style="margin-top:20px; display:flex; gap:16px; align-items:flex-start">
+          <div style="flex:1; min-width:0">
+            <div class="section-label">Wer kommt wann?</div>
+            <div style="margin-top:8px">
+              <template x-for="p in eventParticipants" :key="p.id">
+                <div class="arrival-row">
+                  <span class="arrival-name" x-text="p.name"></span>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span class="arrival-lbl">Ankunft</span>
+                    <input type="datetime-local" class="arrival-dt"
+                      :disabled="p.id!==me && me!=='admin'"
+                      :value="arrivalGet(p.id,'arrive')"
+                      @change="arrivalSet(p.id,'arrive',$event.target.value)"
+                      :min="eventDateRange ? eventDateRange.from+'T00:00' : ''"
+                      :max="eventDateRange ? eventDateRange.to+'T23:59' : ''">
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span class="arrival-lbl">Abreise</span>
+                    <input type="datetime-local" class="arrival-dt"
+                      :disabled="p.id!==me && me!=='admin'"
+                      :value="arrivalGet(p.id,'depart')"
+                      @change="arrivalSet(p.id,'depart',$event.target.value)"
+                      :min="eventDateRange ? eventDateRange.from+'T00:00' : ''"
+                      :max="eventDateRange ? eventDateRange.to+'T23:59' : ''">
+                  </div>
+                </div>
+              </template>
+            </div>
           </div>
-        </template>
-        <div style="margin-top:20px">
-          <div class="section-label">Wer kommt wann?</div>
-          <div style="margin-top:8px">
-            <template x-for="p in eventParticipants" :key="p.id">
-              <div class="arrival-row">
-                <span class="arrival-name" x-text="p.name"></span>
-                <input type="text" :disabled="p.id!==me && me!=='admin'" x-model="arrivals[p.id]" style="flex:1;max-width:300px;height:33px" :placeholder="(p.id===me||me==='admin')?'Ankunft eintragen...':''" :style="(p.id!==me&&me!=='admin')?'opacity:0.45':''">
-              </div>
-            </template>
+          <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+            <div style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid #e0ddd8;background:#f5f5f3">
+              <template x-if="bookingMapUrl()">
+                <iframe :src="bookingMapUrl()" width="100%" height="100%" style="border:none;display:block" scrolling="no"></iframe>
+              </template>
+              <template x-if="!bookingMapUrl()">
+                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:0.78rem;text-align:center;padding:12px">
+                  <span x-text="booking.address ? '📍 Karte lädt…' : '📍 Adresse eintragen'"></span>
+                </div>
+              </template>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center"
+              :disabled="!booking.address"
+              @click="navigator.clipboard.writeText(booking.address)">
+              📋 Adresse kopieren
+            </button>
           </div>
         </div>
         <div style="margin-top:18px">
@@ -892,7 +883,9 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 
 <script>
 // URL des Analyse-Backends:
-const ANALYZER_URL = 'https://bswe-analyzer-production.up.railway.app/analyze-url';
+const ANALYZER_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8080/analyze-url'
+  : 'https://bswe-analyzer-production.up.railway.app/analyze-url';
 
 // ── Supabase-Konfiguration ──────────────────────────────────────────────────
 // 1. Kostenlosen Account anlegen: https://supabase.com
@@ -937,6 +930,23 @@ async function supabasePut(data) {
   } catch(e) { console.warn('Supabase save error:', e); }
 }
 
+// Felder die persistent gespeichert werden:
+const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
+  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
+  'games','gameVotes','schedule',
+  'recipes','foodVotes','selectedMealIds','foodLocked',
+  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories'];
+
+let _saveTimer = null;
+function scheduleSave(appState) {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    const snapshot = {};
+    PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
+    supabasePut(snapshot);
+  }, 1500);
+}
+
 // ── Smart rounding for shopping list ──
 const COUNTABLE_UNITS = new Set(['','stück','stk','zehe','zehen','scheibe','scheiben',
   'dose','dosen','flasche','flaschen','bund','bünde','kopf','köpfe',
@@ -959,6 +969,7 @@ function smartRound(amount, unit) {
   }
   if (u === 'kg' || u === 'l') return { val: Math.round(amount*10)/10, unit };
   if (['el','tl','esslöffel','teelöffel'].includes(u)) return { val: Math.round(amount*2)/2, unit };
+  // Default: 1 decimal max
   return { val: Math.round(amount*10)/10, unit };
 }
 function fmtAmount(amount, unit) {
@@ -968,10 +979,11 @@ function fmtAmount(amount, unit) {
   return s + (u ? ' ' + u : '');
 }
 const WATER_KEYS = ['wasser','mineralwasser','leitungswasser'];
+
 const CATEGORY_RULES = [
-  { id:'c_getraenke',    keys:['saft','bier','wein','kaffee','tee','limonade','cola','sprudel','limo','smoothie','soda','milch','kakao','espresso','cappuccino','getränk'] },
+  { id:'c_getraenke',    keys:['saft','bier','wein','kaffee','tee','limonade','cola','sprudel','limo','smoothie','soda','milch','kakao','brause','getränk','espresso','capuccino','cappuccino'] },
   { id:'c_fruehstueck',  keys:['brot','brötchen','toast','aufschnitt','marmelade','honig','müsli','cornflakes','haferflocken','granola','nutella','frischkäse','quark','butter','margarine'] },
-  { id:'c_snacks',       keys:['chips','nüsse','schokolade','kekse','gummibären','popcorn','cracker','salzstangen','erdnuss','mandel','snack','riegel','walnuss','cashew','pistazie'] },
+  { id:'c_snacks',       keys:['chips','nüsse','schokolade','kekse','gummibären','popcorn','cracker','salzstangen','erdnuss','mandel','snack','riegel','süßigkeit','walnuss','cashew','pistazie','praline','bonbon'] },
 ];
 function autoCategoryId(name) {
   const n = name.toLowerCase();
@@ -979,23 +991,6 @@ function autoCategoryId(name) {
     if (rule.keys.some(k => n.includes(k))) return rule.id;
   }
   return 'c_kochzutaten';
-}
-
-// Felder die persistent gespeichert werden:
-const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
-  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
-  'bgPlays','bgGames','bgPlayers','bgPlayerMap',
-  'recipes','foodVotes','selectedMealIds','foodLocked',
-  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories'];
-
-let _saveTimer = null;
-function scheduleSave(appState) {
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    const snapshot = {};
-    PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
-    supabasePut(snapshot);
-  }, 1500);
 }
 
 const LOADING_STEPS=['Seite wird geladen...','Texte und Bilder analysieren...','Schlaf- und Zimmeranzahl ermitteln...','Lage und Bahnhof suchen...','Ausstattung prüfen...','Karte wird befüllt ✓'];
@@ -1017,6 +1012,50 @@ function app() {
     editingEventName: false, tempEventName: '',
     venueSortBy: 'votes',
     dateSortBy: 'votes',
+
+    // ── Food ──
+    recipes: [],
+    foodVotes: {},
+    selectedMealIds: [],
+    foodLocked: false,
+    foodSortBy: 'votes',
+    foodFilters: [],
+    recipeInput: '',
+    analyzingRecipe: false,
+    recipeError: '',
+    manualShoppingItems: [],
+    newManualItem: '',
+    newManualItemAmount: '',
+    get mealCategories() {
+      const ids = this.mealCategoryPersonIds || {};
+      return [
+        {id:'c_kochzutaten', name:'Kochzutaten', personId: ids['c_kochzutaten']||null},
+        {id:'c_getraenke',   name:'Getränke',    personId: ids['c_getraenke']||null},
+        {id:'c_fruehstueck', name:'Frühstück',   personId: ids['c_fruehstueck']||null},
+        {id:'c_snacks',      name:'Snacks',      personId: ids['c_snacks']||null},
+      ];
+    },
+    mealCategoryPersonIds: {},
+    shoppingItemCategories: {},
+
+    // ── Games ── (Mock-Daten für Testing – BGG-API ausstehend)
+    games: [
+      { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, maxPlaytime: 90, description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, maxPlaytime: 120, description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, maxPlaytime: 120, description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, maxPlaytime: 90, description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, maxPlaytime: 180, description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+    ],
+    gameVotes: {},
+    schedule: {},
+    gameSubTab: 'list',
+    gameQuery: '',
+    gameSearchResults: [],
+    gameSearchLoading: false,
+    gameSearchError: '',
+    gameAddLoading: false,
+    gameSortBy: 'votes',
+    gameSortDir: 'desc',
 
     allPeople: [
       { id:'christoph', name:'Christoph', short:'CV', hometown:'' },
@@ -1047,9 +1086,9 @@ function app() {
 
     venues: [
       { id:'muehle', name:'Die Mühle', winner:false, permanent:true,
-        url:'', price:0, beds:6, sauna:false, bigTable:true, sqm:null,
-        location:'Vierden, Niedersachsen', trainStation:null,
-        rooms:[], notes:'Hauptstraße 25, 27419 Vierden. Schlüssel unter dem linken Türpfosten.',
+        url:'', price:0, beds:5, sauna:false, bigTable:true, sqm:null,
+        location:'Hauptstraße 25, 27419 Vierden', trainStation:null,
+        rooms:[], notes:'Schlüssel unter dem linken Türpfosten.',
         photos:[
           'muehle_photos/IMG_20160815_185039389_HDR.jpg',
           'muehle_photos/IMG_20160825_205851228.jpg',
@@ -1069,143 +1108,8 @@ function app() {
     newExp: { amount:'', category:'einkauf', description:'', personId:'nico' },
     settlement: [],
 
-    // ── Food ──
-    recipes: [],
-    foodVotes: {},
-    selectedMealIds: [],
-    foodLocked: false,
-    foodSortBy: 'votes',
-    foodFilters: [],
-    recipeInput: '',
-    analyzingRecipe: false,
-    recipeError: '',
-    manualShoppingItems: [],
-    newManualItem: '',
-    newManualItemAmount: '',
-    mealCategoryPersonIds: {},
-    shoppingItemCategories: {},
-
-    get mealCategories() {
-      const ids = this.mealCategoryPersonIds || {};
-      return [
-        {id:'c_kochzutaten', name:'Kochzutaten', personId: ids['c_kochzutaten']||null},
-        {id:'c_getraenke',   name:'Getränke',    personId: ids['c_getraenke']||null},
-        {id:'c_fruehstueck', name:'Frühstück',   personId: ids['c_fruehstueck']||null},
-        {id:'c_snacks',      name:'Snacks',      personId: ids['c_snacks']||null},
-      ];
-    },
-
-    get mealsNeeded() {
-      const d = this.dates.find(x => x.id === this.finalDateId);
-      if (d?.from && d?.to) return Math.max(1, Math.round((new Date(d.to)-new Date(d.from))/86400000));
-      return 2;
-    },
-
-    get sortedFilteredRecipes() {
-      let list = [...this.recipes];
-      if (this.foodLocked && this.me !== 'admin') list = list.filter(r => this.selectedMealIds.includes(r.id));
-      if (this.foodFilters.includes('vegan')) list = list.filter(r => r.isVegan);
-      else if (this.foodFilters.includes('vegetarisch')) list = list.filter(r => r.isVegetarian || r.isVegan);
-      if (this.foodSortBy === 'votes') list.sort((a,b) => this.foodScore(b.id)-this.foodScore(a.id));
-      else if (this.foodSortBy === 'duration') list.sort((a,b) => (a.durationMinutes||9999)-(b.durationMinutes||9999));
-      else list.sort((a,b) => a.name.localeCompare(b.name,'de'));
-      return list;
-    },
-
-    get shoppingList() {
-      const n = this.currentParticipantIds.length;
-      const overrides = this.shoppingItemCategories || {};
-      const combined = {};
-      for (const id of this.selectedMealIds) {
-        const r = this.recipes.find(x => x.id === id);
-        if (!r?.ingredients?.length || !r.servings) continue;
-        const factor = n / r.servings;
-        for (const ing of r.ingredients) {
-          const key = ing.name.toLowerCase().trim();
-          if (WATER_KEYS.some(w => key === w || key.startsWith(w))) continue;
-          if (!combined[key]) combined[key] = { name: ing.name, amount: 0, hasAmount: false, unit: ing.unit };
-          if (ing.amount) { combined[key].amount += ing.amount * factor; combined[key].hasAmount = true; }
-        }
-      }
-      const auto = Object.values(combined)
-        .map(x => ({ key:x.name, name:x.name, display:x.hasAmount?fmtAmount(x.amount,x.unit):(x.unit||''), manual:false, categoryId:overrides[x.name]||autoCategoryId(x.name) }))
-        .sort((a,b) => a.name.localeCompare(b.name,'de'));
-      const breakfast = { key:'__fruehstueck', name:'🥐 Frühstück', display:'× '+this.mealsNeeded, manual:false, pinned:true, categoryId:overrides['__fruehstueck']||'c_fruehstueck' };
-      const manual = (this.manualShoppingItems||[]).map(x => ({...x, manual:true, categoryId:overrides[x.key]||'c_kochzutaten'}));
-      return [breakfast, ...auto, ...manual];
-    },
-
-    shoppingListGrouped() {
-      return this.mealCategories.map(cat => ({
-        ...cat, items: this.shoppingList.filter(i => i.categoryId === cat.id)
-      })).filter(g => g.items.length > 0);
-    },
-
-    myShoppingItems() {
-      return this.shoppingList.filter(item => {
-        const cat = this.mealCategories.find(c => c.id === item.categoryId);
-        return cat?.personId === this.me;
-      });
-    },
-
-    copyMyShoppingList() {
-      const items = this.myShoppingItems();
-      if (!items.length) return;
-      const who = this.allPeople.find(p => p.id === this.me)?.name || this.me;
-      const lines = items.map(i => `- ${i.name}${i.display ? ': '+i.display : ''}`).join('\n');
-      navigator.clipboard.writeText(`**Das besorge ich (${who}):**\n${lines}`);
-    },
-
-    foodScore(id) { return Object.values(this.foodVotes[id]||{}).reduce((s,x)=>s+(x==='vollbock'?2:x==='bock'?1:0),0); },
-    foodVoteCount(id,v) { return Object.values(this.foodVotes[id]||{}).filter(x=>x===v).length; },
-    setFoodVote(id,v) {
-      if (!this.foodVotes[id]) this.foodVotes[id]={};
-      if (this.foodVotes[id][this.me]===v) delete this.foodVotes[id][this.me];
-      else this.foodVotes[id][this.me]=v;
-      this.foodVotes={...this.foodVotes};
-    },
-    toggleMealSelection(id) {
-      const i=this.selectedMealIds.indexOf(id);
-      if (i>=0) this.selectedMealIds.splice(i,1);
-      else if (this.selectedMealIds.length<this.mealsNeeded) this.selectedMealIds.push(id);
-    },
-    toggleFoodFilter(f) {
-      const i=this.foodFilters.indexOf(f);
-      if (i>=0) this.foodFilters.splice(i,1); else this.foodFilters.push(f);
-    },
-    removeRecipe(id) {
-      this.recipes=this.recipes.filter(r=>r.id!==id);
-      this.selectedMealIds=this.selectedMealIds.filter(x=>x!==id);
-      const v={...this.foodVotes}; delete v[id]; this.foodVotes=v;
-    },
-    addManualShoppingItem() {
-      const name=(this.newManualItem||'').trim(); if (!name) return;
-      (this.manualShoppingItems||[]).push({key:'m_'+Date.now(),name,display:(this.newManualItemAmount||'').trim()});
-      this.newManualItem=''; this.newManualItemAmount='';
-    },
-    removeManualShoppingItem(key) { this.manualShoppingItems=(this.manualShoppingItems||[]).filter(x=>x.key!==key); },
-    async analyzeRecipe() {
-      this.analyzingRecipe=true; this.recipeError='';
-      try {
-        const base=ANALYZER_URL.replace('/analyze-url','');
-        const res=await fetch(base+'/analyze-recipe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:this.recipeInput})});
-        if (!res.ok) { const e=await res.json().catch(()=>({detail:'Fehler'})); throw new Error(e.detail||'Fehler'); }
-        const data=await res.json();
-        this.recipes.push({id:'r_'+Date.now(),name:data.name||'Unbekanntes Gericht',description:data.description||'',durationMinutes:data.durationMinutes||null,isVegetarian:data.isVegetarian||false,isVegan:data.isVegan||false,ingredients:data.ingredients||[],servings:data.servings||null});
-        this.recipeInput='';
-      } catch(e) { this.recipeError=e.message; }
-      finally { this.analyzingRecipe=false; }
-    },
-
-    // ── BGStats import ──
-    bgPlays: [],       // [{uuid, playDate, durationMin, gameUuid, playerScores:[{uuid,score,winner,rank,role}]}]
-    bgGames: {},       // { [gameUuid]: {uuid,name,thumbUrl} }
-    bgPlayers: {},     // { [playerUuid]: {uuid,name,isNpc} }
-    bgPlayerMap: {},   // { [playerUuid]: personId | null }
-    statsDropzone: false,
-
     checkGate() {
-      const GATE_PW = 'bswe2026';
+      const GATE_PW = 'kakapups';
       if (this.gateInput === GATE_PW) {
         localStorage.setItem('bswe_gate', '1');
         this.siteUnlocked = true;
@@ -1224,10 +1128,22 @@ function app() {
       if (remote) {
         PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
       }
+      // Mock-Daten für Testing (bis BGG-API freigegeben): games auffüllen wenn leer
+      if (!this.games || this.games.length === 0) {
+        this.games = [
+          { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+        ];
+        scheduleSave(this);
+      }
 
-      // Lokale Identity validieren und ggf. Auto-Login
+      // Lokale Identity wiederherstellen und validieren
       const saved = localStorage.getItem('bswe_identity');
       if (saved && (saved === 'admin' || this.allPeople.find(p => p.id === saved))) {
+        // Auto-Login: direkt in die App ohne Landing-Klick
         this.me = saved === 'admin' ? 'admin' : saved;
         if (saved !== 'admin') this.newExp.personId = saved;
         this.savedIdentity = saved;
@@ -1235,6 +1151,7 @@ function app() {
         this.loginToast = true;
         setTimeout(() => { this.loginToast = false; }, 3000);
       } else {
+        // Ungültige oder veraltete Identity: löschen, Landing zeigen
         localStorage.removeItem('bswe_identity');
       }
 
@@ -1278,7 +1195,8 @@ function app() {
     },
 
     myPerson() { return this.allPeople.find(p => p.id === this.me); },
-    onMeChange() {}, // Dropdown entfernt — nicht mehr benötigt
+    // onMeChange: nicht mehr benötigt (Dropdown entfernt), bleibt als No-Op
+    onMeChange() {},
     updateHometown(id, val) {
       this.allPeople = this.allPeople.map(p => p.id===id ? {...p, hometown:val.trim()} : p);
       if (val.trim()) this.geocodeCity(val.trim());
@@ -1340,15 +1258,35 @@ function app() {
       return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
     },
 
+    // ── Booking map ──
     bookingMapUrl() {
-      const venue = this.bookedVenue;
-      const loc = venue?.location?.trim();
-      if (loc) {
-        if (!Object.prototype.hasOwnProperty.call(this.coordsCache, loc)) { this.geocodeCity(loc); return null; }
-        const c = this.coordsCache[loc];
-        if (c) { const d=0.18; return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`; }
+      const addr = this.booking?.address?.trim();
+      if (!addr) return null;
+      if (!Object.prototype.hasOwnProperty.call(this.coordsCache, addr)) {
+        this.geocodeCity(addr);
+        return null;
       }
-      return null;
+      const c = this.coordsCache[addr];
+      if (!c) return null;
+      const d = 0.05;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
+    },
+
+    get eventDateRange() {
+      const d = this.dates.find(x => x.id === this.finalDateId);
+      if (!d?.from || !d?.to) return null;
+      return { from: d.from, to: d.to };
+    },
+
+    arrivalGet(pid, field) {
+      const a = this.arrivals[pid];
+      if (!a || typeof a === 'string') return '';
+      return a[field] || '';
+    },
+    arrivalSet(pid, field, val) {
+      const a = this.arrivals[pid];
+      const prev = (a && typeof a === 'object') ? a : {};
+      this.arrivals = { ...this.arrivals, [pid]: { ...prev, [field]: val } };
     },
 
     // ── Overview ──
@@ -1402,7 +1340,7 @@ function app() {
       if(!this.newDate.from||!this.newDate.to) return;
       const fmt=s=>new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
       const id='d'+Date.now();
-      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,proposedBy:this.me,from:this.newDate.from,to:this.newDate.to});
+      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,from:this.newDate.from,to:this.newDate.to});
       this.votes[id]={};
       this.newDate={from:'',to:'',sub:''};
     },
@@ -1420,13 +1358,13 @@ function app() {
       if(v){
         // Pre-populate booking from venue data; user can edit afterwards
         this.booking.address = v.location || '';
-        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'Privat' : '');
+        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : '');
         this.booking.keyCode = '';
         this.booking.notes = v.notes || '';
+        // Dates aus fixiertem Termin übernehmen
         const fd = this.finalDateId ? this.dates.find(x => x.id === this.finalDateId) : null;
-        const fmtDE = s => s ? new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
-        this.booking.checkin  = fmtDE(fd?.from) || '';
-        this.booking.checkout = fmtDE(fd?.to)   || '';
+        this.booking.checkin  = (fd && fd.from) ? fd.from : '';
+        this.booking.checkout = (fd && fd.to)   ? fd.to   : '';
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
@@ -1528,6 +1466,422 @@ function app() {
       this.settlement=tr;
     },
     allSettled(){ return this.settlement.length>0&&this.settlement.every(t=>t.doneSender&&t.doneReceiver); },
+    // ── Games logic ──
+    get sortedGames() {
+      const arr = [...this.games];
+      const dir = this.gameSortDir === 'desc' ? -1 : 1;
+      arr.sort((a, b) => {
+        switch (this.gameSortBy) {
+          case 'votes': return (this.gameVoteScore(b.id) - this.gameVoteScore(a.id)) * dir;
+          case 'rating': return ((b.rating||0) - (a.rating||0)) * dir;
+          case 'duration': { const dm={kurz:1,mittel:2,lang:3}; return ((dm[a.durationCat]||0)-(dm[b.durationCat]||0))*dir; }
+          case 'name': return a.name.localeCompare(b.name) * dir;
+        }
+        return 0;
+      });
+      return arr;
+    },
+    gameVoteScore(gameId) {
+      return Object.values(this.gameVotes[gameId]||{}).reduce((s,v)=>s+(v==='vollbock'?2:v==='bock'?1:v==='keinbock'?-1:0),0);
+    },
+    gameVoteCount(gameId, voteType) {
+      return Object.values(this.gameVotes[gameId]||{}).filter(x=>x===voteType).length;
+    },
+    gameAccentColor(game) {
+      // Handgepickte Farben für bekannte BGG-IDs, sonst deterministischer Hash
+      const known = {
+        237182:  '#5a7a3a', // Root — Waldgrün
+        291572:  '#7b5ea7', // Oath — Tiefviolett
+        382118:  '#2a6b8a', // Arcs — Weltraumblau
+        396790:  '#c26b8a', // Molly House — Altrosa
+        271971:  '#b5451b', // John Company — Imperialrot
+      };
+      if (known[game.id]) return known[game.id];
+      // Fallback: HSL-Hash aus game.id
+      const h = ((game.id * 2654435761) % 360 + 360) % 360;
+      return `hsl(${h}, 45%, 42%)`;
+    },
+    async searchBGG() {
+      if (!this.gameQuery.trim()) return;
+      this.gameSearchLoading = true;
+      this.gameSearchResults = [];
+      this.gameSearchError = '';
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url','');
+        const r = await fetch(`${base}/bgg/search?q=${encodeURIComponent(this.gameQuery)}`);
+        if (!r.ok) { this.gameSearchError = `Fehler vom Server: ${r.status}`; }
+        else {
+          const data = await r.json();
+          this.gameSearchResults = data;
+          if (!data.length) this.gameSearchError = 'Keine Treffer auf BoardGameGeek.';
+        }
+      } catch(e) { this.gameSearchError = 'Netzwerkfehler – ist das Backend erreichbar?'; console.warn(e); }
+      this.gameSearchLoading = false;
+    },
+    async addGame(bggId) {
+      if (this.games.find(g => g.id === bggId)) { this.gameSearchResults=[]; return; }
+      this.gameAddLoading = bggId;
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url','');
+        const r = await fetch(`${base}/bgg/thing?id=${bggId}`);
+        const data = await r.json();
+        this.games.push({...data, addedBy: this.me, addedAt: new Date().toISOString()});
+        this.gameSearchResults = [];
+        this.gameQuery = '';
+        scheduleSave(this);
+      } catch(e) { console.warn('BGG thing error', e); }
+      this.gameAddLoading = false;
+    },
+    removeGame(gameId) {
+      this.games = this.games.filter(g => g.id !== gameId);
+      const v = {...this.gameVotes}; delete v[gameId]; this.gameVotes = v;
+      scheduleSave(this);
+    },
+    setGameVote(gameId, vote) {
+      if (!this.gameVotes[gameId]) this.gameVotes[gameId] = {};
+      const cur = this.gameVotes[gameId][this.me];
+      const v = {...this.gameVotes};
+      if (cur === vote) { delete v[gameId][this.me]; } else { v[gameId] = {...v[gameId], [this.me]: vote}; }
+      this.gameVotes = v;
+      scheduleSave(this);
+    },
+
+    // ── Schedule logic ──
+    get scheduleDays() {
+      // Priorität: gebuchter Termin → fixierter Termin aus Abstimmung
+      let from, to;
+      if (this.booking && this.booking.checkin && this.booking.checkout) {
+        from = this.booking.checkin; to = this.booking.checkout;
+      } else if (this.finalDateId) {
+        const fd = this.dates.find(x => x.id === this.finalDateId);
+        if (fd && fd.from && fd.to) { from = fd.from; to = fd.to; }
+      }
+      if (!from || !to) return [];
+      const days=[], d=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
+      while(d<=end){ days.push(d.toISOString().split('T')[0]); d.setDate(d.getDate()+1); }
+      return days;
+    },
+    formatDay(dateStr) {
+      return new Date(dateStr+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+    },
+    gameSlots(game) {
+      if(!game) return 1;
+      return game.durationCat==='kurz'?1:game.durationCat==='mittel'?2:4;
+    },
+    daySlotsFilled(dateStr) {
+      return (this.schedule[dateStr]||[]).reduce((s,gid)=>{
+        const g=this.games.find(x=>x.id===gid); return s+(g?this.gameSlots(g):0);
+      },0);
+    },
+    daySlotsFree(dateStr) { return Math.max(0,8-this.daySlotsFilled(dateStr)); },
+    daySlotDisplay(dateStr) {
+      const slots=Array(8).fill(null);
+      const colors=['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc'];
+      let pos=0;
+      (this.schedule[dateStr]||[]).forEach((gid,idx)=>{
+        const g=this.games.find(x=>x.id===gid); if(!g)return;
+        const color=colors[idx%colors.length];
+        for(let i=0;i<this.gameSlots(g)&&pos<8;i++,pos++) slots[pos]={name:g.name,color};
+      });
+      return slots;
+    },
+    scheduleAdd(dateStr,gameId) {
+      gameId = isNaN(gameId) ? gameId : +gameId;
+      const game=this.games.find(g=>g.id===gameId);
+      if(!game||this.daySlotsFree(dateStr)<this.gameSlots(game)) return;
+      const s={...this.schedule};
+      if(!s[dateStr])s[dateStr]=[];
+      if(!s[dateStr].includes(gameId)){ s[dateStr]=[...s[dateStr],gameId]; this.schedule=s; scheduleSave(this); }
+    },
+    scheduleRemove(dateStr,gameId) {
+      const s={...this.schedule};
+      if(s[dateStr]){ s[dateStr]=s[dateStr].filter(id=>id!==gameId); this.schedule=s; scheduleSave(this); }
+    },
+    gamesAvailableForDay(dateStr) {
+      const assigned=this.schedule[dateStr]||[], free=this.daySlotsFree(dateStr);
+      return this.games.filter(g=>!assigned.includes(g.id)&&this.gameSlots(g)<=free);
+    },
+
+    // ── Schedule Drag & Drop ──
+    scheduleDragGid: null,
+    scheduleDragDay: null,
+    scheduleDragOver: null, // 'day|gid' or 'day|__end'
+
+    scheduleDragStart(day, gid, ev) {
+      this.scheduleDragGid = gid;
+      this.scheduleDragDay = day;
+      ev.dataTransfer.effectAllowed = 'move';
+    },
+    scheduleDragOverTarget(day, gid, ev) {
+      if (!this.scheduleDragGid) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      this.scheduleDragOver = day + '|' + gid;
+    },
+    scheduleDrop(targetDay, targetGid) {
+      const srcGid = this.scheduleDragGid;
+      const srcDay = this.scheduleDragDay;
+      this.scheduleDragOver = null;
+      this.scheduleDragGid = null;
+      this.scheduleDragDay = null;
+      if (!srcGid || srcGid === targetGid) return;
+      const s = JSON.parse(JSON.stringify(this.schedule));
+      // Aus Quell-Tag entfernen
+      s[srcDay] = (s[srcDay]||[]).filter(id => id !== srcGid);
+      // In Ziel-Tag einfügen (vor targetGid, oder ans Ende wenn __end)
+      if (!s[targetDay]) s[targetDay] = [];
+      if (targetGid === '__end') {
+        s[targetDay] = [...s[targetDay], srcGid];
+      } else {
+        const idx = s[targetDay].indexOf(targetGid);
+        s[targetDay] = idx >= 0
+          ? [...s[targetDay].slice(0,idx), srcGid, ...s[targetDay].slice(idx)]
+          : [...s[targetDay], srcGid];
+      }
+      this.schedule = s;
+      scheduleSave(this);
+    },
+    scheduleDragEnd() {
+      this.scheduleDragOver = null;
+      this.scheduleDragGid = null;
+      this.scheduleDragDay = null;
+    },
+
+    // ── Schedule: Anwesenheit ──
+    // Gibt ISO-Datetime für Slot-Start zurück: Slot 0 = 11:00, je +90min
+    slotDateTime(dateStr, slotIndex) {
+      const [y,m,d] = dateStr.split('-').map(Number);
+      const totalMin = 11*60 + slotIndex*90;
+      const h = Math.floor(totalMin/60), min = totalMin%60;
+      return new Date(y, m-1, d, h, min);
+    },
+    // Anzahl anwesender Teilnehmer zu einem bestimmten Slot-Zeitpunkt
+    slotPlayerCount(dateStr, slotIndex) {
+      const slotStart = this.slotDateTime(dateStr, slotIndex);
+      const slotEnd   = this.slotDateTime(dateStr, slotIndex + 1);
+      return this.currentParticipantIds.filter(pid => {
+        const a = this.arrivals[pid];
+        if (!a || typeof a !== 'object') return true; // keine Ankunftszeit = ganztags anwesend
+        const arrive = a.arrive ? new Date(a.arrive) : null;
+        const depart = a.depart ? new Date(a.depart) : null;
+        const presentAtStart = !arrive || arrive <= slotStart;
+        const presentAtEnd   = !depart || depart >= slotEnd;
+        return presentAtStart && presentAtEnd;
+      }).length;
+    },
+    // Alle 8 Spielerzahlen für einen Tag
+    dayPlayerCounts(dateStr) {
+      return Array.from({length:8}, (_,i) => this.slotPlayerCount(dateStr, i));
+    },
+    // Erster Slot mit ≥2 Spielern; letzter Slot vor Abreise
+    dayFirstSlot(dateStr) {
+      const counts = this.dayPlayerCounts(dateStr);
+      for (let i=0; i<8; i++) if (counts[i] >= 2) return i;
+      return 0;
+    },
+    dayLastSlot(dateStr) {
+      // Harte Obergrenze: Checkout der Unterkunft
+      let checkout = null;
+      if (this.booking && this.booking.checkout) checkout = new Date(this.booking.checkout);
+      if (!checkout && this.finalDateId) {
+        const fd = this.dates.find(x=>x.id===this.finalDateId);
+        if (fd && fd.to) checkout = new Date(fd.to+'T23:00:00');
+      }
+      // Letzter Slot mit ≥2 Spielern (und innerhalb Checkout)
+      for (let i=7; i>=0; i--) {
+        const slotEnd = this.slotDateTime(dateStr, i+1);
+        if (checkout && slotEnd > checkout) continue;
+        if (this.slotPlayerCount(dateStr, i) >= 2) return i;
+      }
+      return 0;
+    },
+    // Mismatch: Spieler außerhalb minPlayers–maxPlayers während eines belegten Spiels?
+    gameHasPlayerMismatch(dateStr, gameId) {
+      const game = this.games.find(g=>g.id===gameId);
+      if (!game) return false;
+      const slots = this.schedule[dateStr]||[];
+      let pos = 0;
+      for (const gid of slots) {
+        const g = this.games.find(x=>x.id===gid);
+        const span = g ? this.gameSlots(g) : 1;
+        if (gid === gameId) {
+          for (let i=0; i<span; i++) {
+            const count = this.slotPlayerCount(dateStr, pos+i);
+            if (game.minPlayers && count < game.minPlayers) return true;
+            if (game.maxPlayers && count > game.maxPlayers) return true;
+          }
+          return false;
+        }
+        pos += span;
+      }
+      return false;
+    },
+
+    // ── Food methods ──
+
+    get mealsNeeded() {
+      const d = this.dates.find(x => x.id === this.finalDateId);
+      if (d?.from && d?.to) {
+        const ms = new Date(d.to) - new Date(d.from);
+        return Math.max(1, Math.round(ms / 86400000));
+      }
+      return 2; // Fallback
+    },
+
+    get sortedFilteredRecipes() {
+      let list = [...this.recipes];
+      if (this.foodLocked && this.me !== 'admin') {
+        list = list.filter(r => this.selectedMealIds.includes(r.id));
+      }
+      if (this.foodFilters.includes('vegan')) {
+        list = list.filter(r => r.isVegan);
+      } else if (this.foodFilters.includes('vegetarisch')) {
+        list = list.filter(r => r.isVegetarian || r.isVegan);
+      }
+      if (this.foodSortBy === 'votes') {
+        list.sort((a, b) => this.foodScore(b.id) - this.foodScore(a.id));
+      } else if (this.foodSortBy === 'duration') {
+        list.sort((a, b) => (a.durationMinutes || 9999) - (b.durationMinutes || 9999));
+      } else {
+        list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      }
+      return list;
+    },
+
+    get shoppingList() {
+      const n = this.currentParticipantIds.length;
+      const combined = {};
+      for (const id of this.selectedMealIds) {
+        const r = this.recipes.find(x => x.id === id);
+        if (!r?.ingredients?.length || !r.servings) continue;
+        const factor = n / r.servings;
+        for (const ing of r.ingredients) {
+          const key = ing.name.toLowerCase().trim();
+          if (WATER_KEYS.some(w => key === w || key.startsWith(w))) continue;
+          if (!combined[key]) combined[key] = { name: ing.name, amount: 0, hasAmount: false, unit: ing.unit };
+          if (ing.amount) { combined[key].amount += ing.amount * factor; combined[key].hasAmount = true; }
+        }
+      }
+      const overrides = this.shoppingItemCategories || {};
+      const auto = Object.values(combined)
+        .map(x => ({
+          key: x.name,
+          name: x.name,
+          display: x.hasAmount ? fmtAmount(x.amount, x.unit) : (x.unit || ''),
+          manual: false,
+          categoryId: overrides[x.name] || autoCategoryId(x.name),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+      const breakfast = { key:'__fruehstueck', name:'🥐 Frühstück', display:'× '+this.mealsNeeded, manual:false, pinned:true, categoryId: overrides['__fruehstueck'] || 'c_fruehstueck' };
+      const manual = (this.manualShoppingItems||[]).map(x=>({...x, manual:true, categoryId: overrides[x.key] || 'c_kochzutaten'}));
+      return [breakfast, ...auto, ...manual];
+    },
+
+    myShoppingItems() {
+      return this.shoppingList.filter(item => {
+        const cat = (this.mealCategories||[]).find(c => c.id === item.categoryId);
+        return cat?.personId === this.me;
+      });
+    },
+
+    shoppingListGrouped() {
+      const list = this.shoppingList;
+      return (this.mealCategories||[]).map(cat => ({
+        ...cat,
+        items: list.filter(i => i.categoryId === cat.id),
+      })).filter(g => g.items.length > 0);
+    },
+
+    copyMyShoppingList() {
+      const items = this.myShoppingItems();
+      if (!items.length) return;
+      const who = this.allPeople.find(p => p.id === this.me)?.name || this.me;
+      const lines = items.map(i => `- ${i.name}${i.display ? ': ' + i.display : ''}`).join('\n');
+      navigator.clipboard.writeText(`**Das besorge ich (${who}):**\n${lines}`);
+    },
+
+    addManualShoppingItem() {
+      const name = (this.newManualItem||'').trim();
+      if (!name) return;
+      (this.manualShoppingItems||[]).push({ key:'m_'+Date.now(), name, display:(this.newManualItemAmount||'').trim() });
+      this.newManualItem = '';
+      this.newManualItemAmount = '';
+    },
+
+    removeManualShoppingItem(key) {
+      this.manualShoppingItems = (this.manualShoppingItems||[]).filter(x => x.key !== key);
+    },
+
+    foodScore(id) {
+      const v = this.foodVotes[id] || {};
+      return Object.values(v).reduce((s, x) => s + (x === 'vollbock' ? 2 : x === 'bock' ? 1 : 0), 0);
+    },
+
+    foodVoteCount(id, v) {
+      return Object.values(this.foodVotes[id] || {}).filter(x => x === v).length;
+    },
+
+    setFoodVote(id, v) {
+      if (!this.foodVotes[id]) this.foodVotes[id] = {};
+      if (this.foodVotes[id][this.me] === v) delete this.foodVotes[id][this.me];
+      else this.foodVotes[id][this.me] = v;
+      this.foodVotes = { ...this.foodVotes };
+    },
+
+    toggleMealSelection(id) {
+      const i = this.selectedMealIds.indexOf(id);
+      if (i >= 0) this.selectedMealIds.splice(i, 1);
+      else if (this.selectedMealIds.length < this.mealsNeeded) this.selectedMealIds.push(id);
+    },
+
+    toggleFoodFilter(f) {
+      const i = this.foodFilters.indexOf(f);
+      if (i >= 0) this.foodFilters.splice(i, 1);
+      else this.foodFilters.push(f);
+    },
+
+    removeRecipe(id) {
+      this.recipes = this.recipes.filter(r => r.id !== id);
+      this.selectedMealIds = this.selectedMealIds.filter(x => x !== id);
+      const v = { ...this.foodVotes };
+      delete v[id];
+      this.foodVotes = v;
+    },
+
+    async analyzeRecipe() {
+      this.analyzingRecipe = true;
+      this.recipeError = '';
+      try {
+        const base = ANALYZER_URL.replace('/analyze-url', '');
+        const res = await fetch(base + '/analyze-recipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: this.recipeInput })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Fehler beim Analysieren' }));
+          throw new Error(err.detail || 'Fehler');
+        }
+        const data = await res.json();
+        const id = 'r_' + Date.now();
+        this.recipes.push({
+          id,
+          name: data.name || 'Unbekanntes Gericht',
+          description: data.description || '',
+          durationMinutes: data.durationMinutes || null,
+          isVegetarian: data.isVegetarian || false,
+          isVegan: data.isVegan || false,
+          ingredients: data.ingredients || [],
+          servings: data.servings || null,
+        });
+        this.recipeInput = '';
+      } catch (e) {
+        this.recipeError = e.message;
+      } finally {
+        this.analyzingRecipe = false;
+      }
+    },
+
     showDeleteConfirm: false,
     deleteEvent(){
       this.currentEvent={ name:'', participants:[], dates:[], bookedVenueId:null, expenses:[], archived:true };
@@ -1549,506 +1903,165 @@ function app() {
       this.currentEvent={...this.currentEvent,archived:true};
       this.tab='overview';
     },
-
-    // ── BGStats Import ──
-    handleDrop(e){
-      this.statsDropzone=false;
-      this.handleBgsplayFiles(e.dataTransfer.files);
-    },
-    handleBgsplayFiles(files){
-      Array.from(files).forEach(f=>{
-        if(!f.name.endsWith('.bgsplay')&&!f.name.endsWith('.json')) return;
-        const r=new FileReader();
-        r.onload=ev=>this.parseBgsplay(ev.target.result);
-        r.readAsText(f);
-      });
-    },
-    parseBgsplay(text){
-      let data;
-      try { data=JSON.parse(text); } catch(e){ alert('Ungültige Datei'); return; }
-
-      // Index players by numeric id within this file
-      const playerById={};
-      (data.players||[]).forEach(p=>{
-        playerById[p.id]=p;
-        if(!this.bgPlayers[p.uuid]){
-          const meta=JSON.parse(p.metaData||'{}');
-          this.bgPlayers={...this.bgPlayers,[p.uuid]:{uuid:p.uuid,name:p.name,isNpc:meta.isNpc===1}};
-        }
-        // Auto-map by name if not yet mapped
-        if(this.bgPlayerMap[p.uuid]===undefined){
-          const match=this.autoMatchPlayer(p.name);
-          this.bgPlayerMap={...this.bgPlayerMap,[p.uuid]:match};
-        }
-      });
-
-      // Index games by numeric id
-      const gameById={};
-      (data.games||[]).forEach(g=>{
-        gameById[g.id]=g;
-        if(!this.bgGames[g.uuid]){
-          this.bgGames={...this.bgGames,[g.uuid]:{uuid:g.uuid,name:g.name,thumbUrl:g.urlThumb||''}};
-        }
-      });
-
-      // Import plays, skip duplicates
-      const existing=new Set(this.bgPlays.map(p=>p.uuid));
-      let added=0;
-      (data.plays||[]).forEach(play=>{
-        if(existing.has(play.uuid)) return;
-        const game=gameById[play.gameRefId];
-        const playerScores=(play.playerScores||[]).map(ps=>{
-          const p=playerById[ps.playerRefId];
-          return{uuid:p?.uuid||String(ps.playerRefId),score:ps.score,winner:ps.winner,rank:ps.rank,role:ps.role||null};
-        });
-        this.bgPlays=[...this.bgPlays,{
-          uuid:play.uuid,
-          playDate:(play.playDate||play.entryDate||'').slice(0,10),
-          durationMin:play.durationMin||0,
-          gameUuid:game?.uuid||String(play.gameRefId),
-          playerScores,
-        }];
-        added++;
-      });
-      if(added===0) alert('Alle Partien bereits importiert.');
-    },
-    autoMatchPlayer(name){
-      const lower=name.toLowerCase().trim();
-      // Exact
-      const exact=this.allPeople.find(p=>p.name.toLowerCase()===lower);
-      if(exact) return exact.id;
-      // First name
-      const first=lower.split(/[\s_]/)[0];
-      const byFirst=this.allPeople.find(p=>p.name.toLowerCase().startsWith(first));
-      if(byFirst) return byFirst.id;
-      return null;
-    },
-    removePlay(uuid){ this.bgPlays=this.bgPlays.filter(p=>p.uuid!==uuid); },
-    clearStats(){ if(!confirm('Alle importierten Partien löschen?')) return; this.bgPlays=[]; this.bgGames={}; this.bgPlayers={}; this.bgPlayerMap={}; },
-
-    // ── Stats Computed ──
-    get statsSummary(){
-      const n=this.bgPlays.length;
-      const totalMin=this.bgPlays.reduce((s,p)=>s+(p.durationMin||0),0);
-      const games=new Set(this.bgPlays.map(p=>p.gameUuid)).size;
-      return{plays:n,games,hours:Math.round(totalMin/60*10)/10,avgMin:n?Math.round(totalMin/n):0};
-    },
-    get statsLeaderboard(){
-      // Collect all mapped, non-NPC players
-      const entries=Object.entries(this.bgPlayerMap)
-        .filter(([uuid,pid])=>pid&&this.bgPlayers[uuid]&&!this.bgPlayers[uuid].isNpc);
-      return entries.map(([uuid,pid])=>{
-        const person=this.allPeople.find(p=>p.id===pid);
-        let plays=0,wins=0,expectedWins=0;
-        this.bgPlays.forEach(play=>{
-          const ps=play.playerScores.find(s=>s.uuid===uuid);
-          if(!ps) return;
-          plays++;
-          if(ps.winner) wins++;
-          const totalCount=play.playerScores.length;
-          if(totalCount>0) expectedWins+=1/totalCount;
-        });
-        const winRate=plays>0?Math.round(wins/plays*100):0;
-        const expectedRate=plays>0?Math.round(expectedWins/plays*100):0;
-        return{personId:pid,name:person?.name||uuid.slice(0,8),plays,wins,winRate,expectedRate,delta:winRate-expectedRate};
-      }).sort((a,b)=>b.wins-a.wins||b.winRate-a.winRate);
-    },
-    get playsGroupedByDate(){
-      const days=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
-      const sorted=[...this.bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
-      const rows=[];
-      let lastDate=null;
-      sorted.forEach(play=>{
-        if(play.playDate!==lastDate){
-          lastDate=play.playDate;
-          const d=new Date(play.playDate);
-          const label=isNaN(d)?play.playDate:days[d.getDay()]+', '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
-          rows.push({type:'header',key:'h_'+play.playDate,label});
-        }
-        rows.push({type:'play',key:'p_'+play.uuid,play});
-      });
-      return rows;
-    },
-    get statsGames(){
-      const map={};
-      this.bgPlays.forEach(play=>{
-        const uuid=play.gameUuid;
-        if(!map[uuid]) map[uuid]={uuid,name:this.bgGames[uuid]?.name||'?',thumbUrl:this.bgGames[uuid]?.thumbUrl||'',plays:0,totalMin:0};
-        map[uuid].plays++;
-        map[uuid].totalMin+=play.durationMin||0;
-      });
-      return Object.values(map)
-        .map(g=>({...g,avgMin:g.plays?Math.round(g.totalMin/g.plays):0}))
-        .sort((a,b)=>b.plays-a.plays);
-    },
-    get statsUnmapped(){
-      return Object.entries(this.bgPlayers)
-        .filter(([uuid,p])=>!p.isNpc&&(this.bgPlayerMap[uuid]===null||this.bgPlayerMap[uuid]===undefined))
-        .map(([uuid,p])=>({uuid,name:p.name}));
-    },
-    get statsNpcs(){
-      return Object.values(this.bgPlayers).filter(p=>p.isNpc).map(p=>p.name);
-    },
-    fmtMin(m){
-      if(!m) return '—';
-      const h=Math.floor(m/60),min=m%60;
-      return h?(min?`${h}h ${min}min`:`${h}h`):`${min}min`;
-    },
-    rankMedal(i){ return i===0?'gold':i===1?'silver':i===2?'bronze':''; },
   }
 }
 </script>
-
-<!-- ══════════════════════════ STATS ══ -->
-<div class="content" x-show="tab==='stats'">
-
-  <!-- Admin: Import -->
-  <div class="card" x-show="me==='admin'" style="margin-bottom:16px">
-    <div class="card-header">
-      <h2>📥 BGStats-Import</h2>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span x-show="bgPlays.length" style="font-size:0.78rem;color:#aaa" x-text="bgPlays.length+' Partien importiert'"></span>
-        <button x-show="bgPlays.length" class="btn btn-sm btn-ghost" style="color:#d9534f;border-color:#fca5a5" @click="clearStats()">🗑 Alles löschen</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <!-- Drop zone -->
-      <label>
-        <input type="file" multiple accept=".bgsplay,.json" @change="handleBgsplayFiles($event.target.files); $event.target.value=''">
-        <div class="dropzone" :class="statsDropzone?'dz-over':''"
-          @dragover.prevent="statsDropzone=true"
-          @dragleave.prevent="statsDropzone=false"
-          @drop.prevent="handleDrop($event)">
-          <div style="font-size:2rem;margin-bottom:8px">🎲</div>
-          <div style="font-weight:600;font-size:0.92rem;margin-bottom:4px">BGStats-Dateien hier ablegen</div>
-          <div style="font-size:0.78rem;color:#aaa">oder klicken zum Auswählen · <strong>.bgsplay</strong> · einzeln oder im Batch</div>
-        </div>
-      </label>
-
-      <!-- Unmapped players warning -->
-      <div x-show="statsUnmapped.length" style="margin-top:14px;padding:12px 16px;background:#fffbeb;border:1px solid #e8b84b;border-radius:8px">
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a6000;margin-bottom:10px">
-          ⚠ Unbekannte Spieler — bitte zuordnen
-        </div>
-        <template x-for="p in statsUnmapped" :key="p.uuid">
-          <div class="map-row">
-            <span class="map-name" x-text="p.name"></span>
-            <span class="map-arrow">→</span>
-            <select class="inp" style="font-size:0.82rem"
-              @change="bgPlayerMap={...bgPlayerMap,[p.uuid]:$event.target.value||null}">
-              <option value="">— Nicht zuordnen —</option>
-              <template x-for="person in allPeople" :key="person.id">
-                <option :value="person.id" x-text="person.name"></option>
-              </template>
-            </select>
-          </div>
-        </template>
-      </div>
-
-      <!-- Player mapping overview (collapsible) -->
-      <div x-show="Object.keys(bgPlayers).length && !statsUnmapped.length" style="margin-top:12px">
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:8px">Spieler-Zuordnung</div>
-        <template x-for="[uuid, player] in Object.entries(bgPlayers)" :key="uuid">
-          <div class="map-row">
-            <span class="map-name" x-text="player.name"></span>
-            <span class="npc-chip" x-show="player.isNpc">NPC</span>
-            <span class="map-arrow" x-show="!player.isNpc">→</span>
-            <select x-show="!player.isNpc" class="inp" style="font-size:0.82rem"
-              @change="bgPlayerMap={...bgPlayerMap,[uuid]:$event.target.value||null}"
-              :value="bgPlayerMap[uuid]||''">
-              <option value="">— Nicht zuordnen —</option>
-              <template x-for="person in allPeople" :key="person.id">
-                <option :value="person.id"
-                  :selected="bgPlayerMap[uuid]===person.id"
-                  x-text="person.name"></option>
-              </template>
-            </select>
-          </div>
-        </template>
-      </div>
-    </div>
-  </div>
-
-  <!-- Empty state -->
-  <div class="card" x-show="!bgPlays.length" style="text-align:center;padding:60px 20px;color:#aaa">
-    <div style="font-size:3rem;margin-bottom:12px">📊</div>
-    <h2 style="font-size:1.1rem;font-weight:700;color:#555;margin-bottom:6px">Noch keine Partien importiert</h2>
-    <p style="font-size:0.85rem" x-show="me!=='admin'">Der Admin kann BGStats-Exporte hochladen.</p>
-    <p style="font-size:0.85rem" x-show="me==='admin'">Lade oben <strong>.bgsplay</strong>-Dateien hoch.</p>
-  </div>
-
-  <div x-show="bgPlays.length">
-
-    <!-- Hero numbers -->
-    <div class="stats-hero">
-      <div class="stats-hero-item">
-        <div class="stats-hero-num" x-text="statsSummary.plays"></div>
-        <div class="stats-hero-lbl">Partien</div>
-      </div>
-      <div class="stats-hero-item">
-        <div class="stats-hero-num" x-text="statsSummary.games"></div>
-        <div class="stats-hero-lbl">Spiele</div>
-      </div>
-      <div class="stats-hero-item">
-        <div class="stats-hero-num" x-text="statsSummary.hours+'h'"></div>
-        <div class="stats-hero-lbl">Gesamt gespielt</div>
-      </div>
-      <div class="stats-hero-item">
-        <div class="stats-hero-num" x-text="fmtMin(statsSummary.avgMin)"></div>
-        <div class="stats-hero-lbl">Ø Partie</div>
-      </div>
-    </div>
-
-    <!-- Leaderboard -->
-    <div class="card" style="margin-bottom:16px" x-show="statsLeaderboard.length">
-      <div class="card-header">
-        <h2>🏆 Gewinner-Leaderboard</h2>
-        <span style="font-size:0.72rem;color:#bbb">Win Rate vs. Erwartungswert</span>
-      </div>
-      <div class="card-body" style="padding:0 0 4px">
-        <table class="lb-table">
-          <thead>
-            <tr>
-              <th style="width:32px">#</th>
-              <th>Spieler</th>
-              <th class="r" style="width:50px">Partien</th>
-              <th class="r" style="width:44px">Siege</th>
-              <th style="padding-left:14px">Win Rate</th>
-              <th class="r" style="width:50px">Delta</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="(row, i) in statsLeaderboard" :key="row.personId">
-              <tr>
-                <td class="lb-rank" :class="rankMedal(i)">
-                  <span x-show="i===0">🥇</span>
-                  <span x-show="i===1">🥈</span>
-                  <span x-show="i===2">🥉</span>
-                  <span x-show="i>2" x-text="i+1" style="font-size:0.8rem;color:#ccc"></span>
-                </td>
-                <td style="font-weight:600" x-text="row.name"></td>
-                <td style="text-align:right;color:#aaa" x-text="row.plays"></td>
-                <td style="text-align:right;font-weight:700" x-text="row.wins"></td>
-                <td style="padding-left:14px">
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <div class="win-track">
-                      <div class="win-bar" :style="'width:'+row.winRate+'%'"></div>
-                      <div class="win-expected" :style="'left:'+row.expectedRate+'%'"></div>
-                    </div>
-                    <span style="font-size:0.78rem;color:#aaa;min-width:34px" x-text="row.winRate+'%'"></span>
-                  </div>
-                  <div style="font-size:0.66rem;color:#ccc;margin-top:2px;padding-left:0">
-                    Erwartet: <span x-text="row.expectedRate+'%'"></span> (│ = Erwartungswert)
-                  </div>
-                </td>
-                <td style="text-align:right">
-                  <span class="win-delta"
-                    :class="row.delta>0?'delta-pos':row.delta<0?'delta-neg':'delta-neu'"
-                    x-text="(row.delta>0?'+':'')+row.delta+'%'"></span>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-        <!-- NPCs footnote -->
-        <div x-show="statsNpcs.length" style="padding:8px 12px 10px;font-size:0.72rem;color:#bbb">
-          🤖 NPCs (nicht gewertet): <span x-text="statsNpcs.join(', ')"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Games breakdown -->
-    <div class="card" x-show="bgPlays.length">
-      <div class="card-header">
-        <h2>🎲 Gespielte Partien</h2>
-        <span style="font-size:0.78rem;color:#aaa" x-text="bgPlays.length+' Partien'"></span>
-      </div>
-      <div class="card-body" style="padding:0 0 4px">
-        <table class="games-table">
-          <thead>
-            <tr>
-              <th>Spiel</th>
-              <th style="text-align:right;width:70px">Dauer</th>
-              <th>Teilnehmer</th>
-              <th style="width:28px"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="row in playsGroupedByDate" :key="row.key">
-              <tr x-show="row.type==='header'">
-                <td colspan="4" style="background:#f8f6f3;padding:6px 10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="row.label"></td>
-              </tr>
-              <tr x-show="row.type==='play'">
-                <td>
-                  <div style="display:flex;align-items:center;gap:7px">
-                    <img x-show="row.play&&bgGames[row.play.gameUuid]?.thumbUrl" :src="bgGames[row.play?.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
-                    <span style="font-weight:600" x-text="bgGames[row.play?.gameUuid]?.name||'?'"></span>
-                  </div>
-                </td>
-                <td style="text-align:right;color:#888;white-space:nowrap" x-text="fmtMin(row.play?.durationMin)"></td>
-                <td>
-                  <div style="display:flex;flex-wrap:wrap;gap:4px">
-                    <template x-for="ps in (row.play?.playerScores||[])" :key="ps.uuid">
-                      <span :style="ps.winner ? 'font-weight:700;color:#1a1a1a' : 'color:#888;font-size:0.85rem'"
-                            x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
-                      </span>
-                    </template>
-                  </div>
-                </td>
-                <td>
-                  <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(row.play?.uuid)" title="Entfernen">✕</button>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /x-show bgPlays.length -->
-</div>
-
 
 <!-- ══════════════════════════ SPIELAUSWAHL ══ -->
 <div class="content" x-show="tab==='games'">
 
   <!-- Sub-Tabs -->
-  <div style="display:flex;gap:6px;margin-bottom:16px">
-    <button class="btn btn-sm" :style="gameSubTab==='list'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':''" @click="gameSubTab='list'">🎲 Spiele</button>
-    <button class="btn btn-sm" :style="gameSubTab==='schedule'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':''" @click="gameSubTab='schedule'">📅 Spielplan</button>
+  <div style="display:flex;gap:6px;margin-bottom:18px">
+    <button class="btn"
+            :style="gameSubTab==='list'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':'border-color:#e0ddd8;color:#666'"
+            @click="gameSubTab='list'">🎲 Vorschläge</button>
+    <button class="btn"
+            :style="gameSubTab==='schedule'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':'border-color:#e0ddd8;color:#666'"
+            @click="gameSubTab='schedule'">📅 Spielplan</button>
   </div>
 
-  <!-- ── LISTE ── -->
+  <!-- ── VORSCHLÄGE ── -->
   <div x-show="gameSubTab==='list'">
 
-    <!-- Suche (admin only, BGG-API ausstehend) -->
-    <div x-show="me==='admin'" class="card" style="padding:14px 16px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="text" x-model="gameQuery" @keydown.enter="searchGames()"
-               placeholder="Spiel auf BoardGameGeek suchen…"
-               style="flex:1;padding:8px 12px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.88rem">
-        <button class="btn" @click="searchGames()" :disabled="gameSearchLoading"
-                style="padding:8px 14px;font-size:0.85rem">
-          <span x-show="!gameSearchLoading">🔍 Suchen</span>
-          <span x-show="gameSearchLoading">…</span>
-        </button>
-      </div>
-      <div x-show="gameSearchError" style="font-size:0.8rem;color:#e53935;margin-top:6px" x-text="gameSearchError"></div>
-      <!-- Suchergebnisse -->
-      <div x-show="gameSearchResults.length > 0" @click.away="gameSearchResults=[]"
-           style="border:1px solid #e8e6e0;border-radius:8px;margin-top:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
-        <template x-for="r in gameSearchResults" :key="r.id">
-          <div @click="addGame(r.id)"
-               :style="gameAddLoading===r.id ? 'opacity:0.4;pointer-events:none' : 'cursor:pointer'"
-               style="padding:9px 14px;border-bottom:1px solid #f0ede8;display:flex;justify-content:space-between;align-items:center"
-               @mouseenter="$el.style.background='#faf9f7'" @mouseleave="$el.style.background=''">
-            <span style="font-size:0.88rem" x-text="r.name"></span>
-            <span style="font-size:0.75rem;color:#bbb" x-text="r.year"></span>
-          </div>
-        </template>
-      </div>
+  <!-- Spiel hinzufügen -->
+  <div class="card" style="padding:16px 18px;margin-bottom:14px">
+    <div class="section-label">Spiel vorschlagen</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" class="input" placeholder="Spieltitel eingeben…"
+             x-model="gameQuery"
+             @keydown.enter="searchBGG()"
+             @keydown.escape="gameSearchResults=[]"
+             style="flex:1;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;outline:none">
+      <button class="btn" @click="searchBGG()" :disabled="gameSearchLoading"
+              style="white-space:nowrap">
+        <span x-show="!gameSearchLoading">🔍 Suchen</span>
+        <span x-show="gameSearchLoading">…</span>
+      </button>
     </div>
-
-    <!-- Sortierleiste -->
-    <div x-show="games.length > 0" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-      <span class="section-label" style="margin:0 6px 0 0">Sortieren:</span>
-      <template x-for="opt in [{k:'votes',l:'Votes'},{k:'rating',l:'BGG-Wertung'},{k:'duration',l:'Länge'},{k:'name',l:'A–Z'}]" :key="opt.k">
-        <button class="btn btn-sm"
-                :style="gameSortBy===opt.k ? 'background:#1a1a1a;color:#fff;border-color:#1a1a1a' : ''"
-                @click="gameSortBy===opt.k ? gameSortDir=(gameSortDir==='desc'?'asc':'desc') : (gameSortBy=opt.k, gameSortDir='desc')">
-          <span x-text="opt.l"></span>
-          <span x-show="gameSortBy===opt.k" x-text="gameSortDir==='desc'?'↓':'↑'" style="margin-left:3px"></span>
-        </button>
+    <!-- Suchergebnisse -->
+    <div x-show="gameSearchResults.length > 0" @click.away="gameSearchResults=[]"
+         style="border:1px solid #e8e6e0;border-radius:8px;margin-top:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
+      <template x-for="r in gameSearchResults" :key="r.id">
+        <div @click="addGame(r.id)"
+             :style="gameAddLoading===r.id ? 'opacity:0.4;pointer-events:none' : 'cursor:pointer'"
+             style="padding:9px 14px;border-bottom:1px solid #f0ede8;display:flex;justify-content:space-between;align-items:center;transition:background 0.1s"
+             @mouseenter="$el.style.background='#faf9f7'" @mouseleave="$el.style.background=''">
+          <span style="font-size:0.87rem;font-weight:500" x-text="r.name"></span>
+          <span style="font-size:0.78rem;color:#bbb" x-text="r.year||''"></span>
+        </div>
       </template>
-      <span style="margin-left:auto;font-size:0.78rem;color:#bbb" x-text="games.length + ' Spiel' + (games.length===1?'':'e')"></span>
     </div>
-
-    <!-- Leer-State -->
-    <div x-show="games.length === 0" class="card" style="text-align:center;padding:60px 20px;color:#aaa">
-      <div style="font-size:2.5rem;margin-bottom:10px">🎲</div>
-      <p style="font-size:0.88rem">Noch keine Spiele vorgeschlagen.<br>Einfach oben suchen und hinzufügen!</p>
+    <div x-show="gameSearchError && !gameSearchLoading" x-text="'⚠️ '+gameSearchError"
+         style="font-size:0.8rem;color:#c0392b;margin-top:8px"></div>
+    <div x-show="gameAddLoading" style="font-size:0.8rem;color:#999;margin-top:8px">
+      ⏳ Lade Spielinfos von BoardGameGeek…
     </div>
+  </div>
 
-    <!-- Spielkarten -->
-    <template x-for="game in sortedGames" :key="game.id">
-      <div class="card" style="position:relative;overflow:hidden;padding:0;margin-bottom:10px;border:none">
-        <!-- Farbwelt-Hintergrund -->
-        <div x-show="game.thumbnail"
-             :style="`position:absolute;inset:0;background-image:url('${game.thumbnail}');background-size:cover;background-position:center;filter:blur(28px) saturate(1.1);opacity:0.22;transform:scale(1.35);z-index:0;pointer-events:none`"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0.82) 40%,rgba(255,255,255,0.95) 100%);z-index:1;pointer-events:none"></div>
-        <div :style="`position:absolute;left:0;top:0;bottom:0;width:4px;background:${gameAccentColor(game)};z-index:2`"></div>
-        <!-- Content -->
-        <div style="position:relative;z-index:2;display:flex;gap:14px;padding:14px 16px 14px 20px">
-          <!-- Cover -->
-          <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block;align-self:flex-start">
-            <img :src="game.thumbnail" alt=""
-                 style="width:80px;height:110px;object-fit:cover;border-radius:7px;display:block;box-shadow:0 2px 10px rgba(0,0,0,0.18)"
-                 @error="$el.parentElement.style.display='none'">
-          </a>
-          <!-- Info -->
-          <div style="flex:1;min-width:0">
-            <!-- Titel + Badges -->
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-              <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
-              <!-- Dauer-Badge: für Admin als Dropdown, sonst Label -->
-              <template x-if="me==='admin'">
-                <select x-model="game.durationCat" @change="games=[...games]; scheduleSave($data)"
-                        style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;border:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none"
-                        :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'">
-                  <option value="kurz">⚡ Kurz</option>
-                  <option value="mittel">⏱ Mittel</option>
-                  <option value="lang">⏳ Lang</option>
-                </select>
-              </template>
-              <template x-if="me!=='admin'">
-                <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
-                      :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
-                      x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
-              </template>
-              <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
-            </div>
-            <!-- Spieler & Zeit -->
-            <div style="font-size:0.79rem;color:#888;margin-bottom:5px">
-              <span x-show="game.minPlayers">
-                👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
-                <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
-              </span>
-              <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
-                🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
-              </span>
-            </div>
-            <!-- Beschreibung -->
-            <p x-show="game.description" x-text="game.description"
-               style="font-size:0.8rem;color:#555;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
-            <!-- Links -->
-            <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
-              <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
-              <a x-show="game.rulesUrl" :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
-              <a x-show="game.bggUrl" :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
-            </div>
-            <!-- Votes -->
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
-                <button class="btn btn-sm"
-                        :style="(gameVotes[game.id]||{})[me]===opt.v
-                          ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
-                            :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
-                            :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
-                        @click="setGameVote(game.id, opt.v)">
-                  <span x-text="opt.l"></span>
-                  <span x-show="gameVoteCount(game.id, opt.v) > 0"
-                        x-text="' · '+gameVoteCount(game.id, opt.v)"
-                        style="opacity:0.6;font-size:0.85em"></span>
-                </button>
-              </template>
-              <button x-show="me==='admin'" class="btn btn-sm"
-                      style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
-                      @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
-            </div>
+  <!-- Sortierleiste -->
+  <div x-show="games.length > 0" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+    <span class="section-label" style="margin:0 6px 0 0">Sortieren:</span>
+    <template x-for="opt in [{k:'votes',l:'Votes'},{k:'rating',l:'BGG-Wertung'},{k:'duration',l:'Länge'},{k:'name',l:'A–Z'}]" :key="opt.k">
+      <button class="btn btn-sm"
+              :style="gameSortBy===opt.k ? 'background:#1a1a1a;color:#fff;border-color:#1a1a1a' : ''"
+              @click="gameSortBy===opt.k ? gameSortDir=(gameSortDir==='desc'?'asc':'desc') : (gameSortBy=opt.k, gameSortDir='desc')">
+        <span x-text="opt.l"></span>
+        <span x-show="gameSortBy===opt.k" x-text="gameSortDir==='desc'?'↓':'↑'" style="margin-left:3px"></span>
+      </button>
+    </template>
+    <span style="margin-left:auto;font-size:0.78rem;color:#bbb" x-text="games.length + ' Spiel' + (games.length===1?'':'e')"></span>
+  </div>
+
+  <!-- Leer-State -->
+  <div x-show="games.length === 0" class="card" style="text-align:center;padding:60px 20px;color:#aaa">
+    <div style="font-size:2.5rem;margin-bottom:10px">🎲</div>
+    <p style="font-size:0.88rem">Noch keine Spiele vorgeschlagen.<br>Einfach oben suchen und hinzufügen!</p>
+  </div>
+
+  <!-- Spielkarten -->
+  <template x-for="game in sortedGames" :key="game.id">
+    <div class="card" style="position:relative;overflow:hidden;padding:0;margin-bottom:10px;border:none">
+      <!-- Farbwelt-Hintergrund: geblurrtes Cover -->
+      <div x-show="game.thumbnail"
+           :style="`position:absolute;inset:0;background-image:url('${game.thumbnail}');background-size:cover;background-position:center;filter:blur(28px) saturate(1.1);opacity:0.22;transform:scale(1.35);z-index:0;pointer-events:none`"></div>
+      <!-- weißer Overlay-Gradient für Lesbarkeit -->
+      <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0.82) 40%,rgba(255,255,255,0.95) 100%);z-index:1;pointer-events:none"></div>
+      <!-- Akzentlinie links -->
+      <div :style="`position:absolute;left:0;top:0;bottom:0;width:4px;background:${gameAccentColor(game)};z-index:2`"></div>
+
+      <!-- Content -->
+      <div style="position:relative;z-index:2;display:flex;gap:14px;padding:14px 16px 14px 20px">
+        <!-- Cover -->
+        <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block;align-self:flex-start">
+          <img :src="game.thumbnail" alt=""
+               style="width:80px;height:110px;object-fit:cover;border-radius:7px;display:block;box-shadow:0 2px 10px rgba(0,0,0,0.18)"
+               @error="$el.parentElement.style.display='none'">
+        </a>
+        <!-- Info -->
+        <div style="flex:1;min-width:0">
+          <!-- Titel + Badges -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
+            <!-- Dauer-Badge: für Admin als Dropdown, sonst nur Label -->
+            <template x-if="me==='admin'">
+              <select x-model="game.durationCat" @change="games=[...games]; scheduleSave($data)"
+                      style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;border:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none"
+                      :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'">
+                <option value="kurz">⚡ Kurz</option>
+                <option value="mittel">⏱ Mittel</option>
+                <option value="lang">⏳ Lang</option>
+              </select>
+            </template>
+            <template x-if="me!=='admin'">
+              <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
+                    :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
+                    x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+            </template>
+            <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
+          </div>
+          <!-- Spieler & Zeit -->
+          <div style="font-size:0.79rem;color:#888;margin-bottom:5px">
+            <span x-show="game.minPlayers">
+              👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
+              <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
+            </span>
+            <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
+              🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
+            </span>
+          </div>
+          <!-- Beschreibung -->
+          <p x-show="game.description" x-text="game.description"
+             style="font-size:0.8rem;color:#555;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
+          <!-- Links -->
+          <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
+            <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
+            <a :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
+            <a :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
+          </div>
+          <!-- Votes -->
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
+              <button class="btn btn-sm"
+                      :style="(gameVotes[game.id]||{})[me]===opt.v
+                        ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
+                          :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
+                          :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
+                      @click="setGameVote(game.id, opt.v)">
+                <span x-text="opt.l"></span>
+                <span x-show="gameVoteCount(game.id, opt.v) > 0"
+                      x-text="' · '+gameVoteCount(game.id, opt.v)"
+                      style="opacity:0.6;font-size:0.85em"></span>
+              </button>
+            </template>
+            <!-- Admin: löschen -->
+            <button x-show="me==='admin'" class="btn btn-sm"
+                    style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
+                    @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
           </div>
         </div>
       </div>
-    </template>
+    </div>
+  </template>
 
   </div><!-- /list -->
 
@@ -2066,7 +2079,7 @@ function app() {
     <template x-for="day in scheduleDays" :key="day">
       <div class="card" style="padding:16px 18px;margin-bottom:12px">
 
-        <!-- Tag-Header -->
+        <!-- Tag-Header + Slot-Bar -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>
             <span style="font-weight:700;font-size:0.95rem" x-text="formatDay(day)"></span>
@@ -2082,7 +2095,7 @@ function app() {
           </div>
         </div>
 
-        <!-- Uhrzeiten + Spielerzahlen -->
+        <!-- Uhrzeiten-Leiste + Spielerzahl -->
         <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:3px">
           <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30']" :key="i">
             <div style="text-align:center;line-height:1.3"
@@ -2136,7 +2149,7 @@ function app() {
           </template>
         </div>
 
-        <!-- Leer-State -->
+        <!-- Leer-State (User, kein Spiel geplant) -->
         <div x-show="(schedule[day]||[]).length===0 && me!=='admin'"
              style="text-align:center;padding:16px;color:#ccc;font-size:0.82rem">
           Noch keine Spiele für diesen Tag geplant.
@@ -2200,11 +2213,12 @@ function app() {
     </div>
   </div>
 
-  <!-- Rezept-Karten -->
+  <!-- Recipe cards -->
   <template x-for="recipe in sortedFilteredRecipes" :key="recipe.id">
     <div class="card" style="margin-bottom:10px"
          :style="selectedMealIds.includes(recipe.id)?'border-color:#5cb85c;border-width:2px':''">
       <div style="padding:16px 18px">
+        <!-- Name + badges + select button -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
@@ -2215,13 +2229,16 @@ function app() {
             </div>
             <p style="font-size:0.83rem;color:#666;margin-top:5px;line-height:1.45" x-text="recipe.description"></p>
           </div>
+          <!-- Admin-Auswahl -->
           <div x-show="me==='admin' && !foodLocked" style="flex-shrink:0">
             <button x-show="!selectedMealIds.includes(recipe.id)"
                     :disabled="selectedMealIds.length >= mealsNeeded"
-                    class="btn btn-sm" style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:600"
+                    class="btn btn-sm"
+                    style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:600"
                     @click="toggleMealSelection(recipe.id)">✓ Auswählen</button>
             <button x-show="selectedMealIds.includes(recipe.id)"
-                    class="btn btn-sm" style="background:#5cb85c;color:#fff;border:1px solid #4cae4c;font-weight:600"
+                    class="btn btn-sm"
+                    style="background:#5cb85c;color:#fff;border:1px solid #4cae4c;font-weight:600"
                     @click="toggleMealSelection(recipe.id)">✓ Ausgewählt</button>
           </div>
           <div x-show="selectedMealIds.includes(recipe.id) && (me!=='admin' || foodLocked)"
@@ -2229,6 +2246,7 @@ function app() {
             ✓ Dabei
           </div>
         </div>
+        <!-- Votes -->
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px">
           <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
             <button class="btn btn-sm"
@@ -2238,37 +2256,47 @@ function app() {
                         :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
                     @click="setFoodVote(recipe.id, opt.v)">
               <span x-text="opt.l"></span>
-              <span x-show="foodVoteCount(recipe.id, opt.v) > 0" x-text="' · '+foodVoteCount(recipe.id, opt.v)" style="opacity:0.6;font-size:0.85em"></span>
+              <span x-show="foodVoteCount(recipe.id, opt.v) > 0"
+                    x-text="' · '+foodVoteCount(recipe.id, opt.v)"
+                    style="opacity:0.6;font-size:0.85em"></span>
             </button>
           </template>
           <button x-show="me==='admin' && !foodLocked" class="btn btn-sm"
                   style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
-                  @click="removeRecipe(recipe.id)">🗑</button>
+                  @click="removeRecipe(recipe.id)" title="Rezept entfernen">🗑</button>
         </div>
       </div>
     </div>
   </template>
 
-  <div x-show="sortedFilteredRecipes.length===0 && recipes.length===0" class="card"
+  <!-- Empty state -->
+  <div x-show="sortedFilteredRecipes.length === 0 && recipes.length === 0" class="card"
        style="text-align:center;padding:40px 20px;color:#aaa">
     <div style="font-size:2.5rem;margin-bottom:12px">🍳</div>
-    <p style="font-size:0.88rem">Noch keine Rezepte — fang an!</p>
+    <p style="font-size:0.88rem">Noch keine Rezepte vorgeschlagen — fang an!</p>
   </div>
-  <div x-show="sortedFilteredRecipes.length===0 && recipes.length>0" class="card"
-       style="text-align:center;padding:24px;color:#aaa;font-size:0.88rem">
-    Keine Rezepte für diesen Filter.
+  <div x-show="sortedFilteredRecipes.length === 0 && recipes.length > 0" class="card"
+       style="text-align:center;padding:28px 20px;color:#aaa">
+    <p style="font-size:0.88rem">Keine Rezepte für diesen Filter.</p>
   </div>
 
-  <!-- Rezept-Eingabe -->
+  <!-- Rezept vorschlagen (solange nicht gelockt, oder admin) -->
   <div x-show="!foodLocked" class="card" style="margin-top:12px">
-    <div class="card-header"><h3 style="font-size:0.95rem;font-weight:700">Rezept vorschlagen</h3></div>
+    <div class="card-header">
+      <h3 style="font-size:0.95rem;font-weight:700">Rezept vorschlagen</h3>
+    </div>
     <div class="card-body">
-      <p style="font-size:0.82rem;color:#888;margin-bottom:10px">Rezept hier reinkopieren — Name, Beschreibung, Zeitaufwand und Zutaten werden automatisch erkannt.</p>
-      <textarea x-model="recipeInput" placeholder="Zutaten für 4 Personen:&#10;- 500g Pasta&#10;..."
+      <p style="font-size:0.82rem;color:#888;margin-bottom:10px">
+        Rezept hier reinkopieren — Name, Beschreibung, Zeitaufwand und Zutaten werden automatisch erkannt.
+      </p>
+      <textarea x-model="recipeInput"
+                placeholder="Zutaten für 4 Personen:&#10;- 500g Pasta&#10;- 2 Zwiebeln&#10;..."
                 style="width:100%;min-height:140px;padding:10px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.83rem;font-family:inherit;resize:vertical;line-height:1.5"
                 :disabled="analyzingRecipe"></textarea>
       <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" :disabled="!recipeInput.trim() || analyzingRecipe" @click="analyzeRecipe()">
+        <button class="btn btn-primary"
+                :disabled="!recipeInput.trim() || analyzingRecipe"
+                @click="analyzeRecipe()">
           <span x-show="!analyzingRecipe">🍴 Rezept hinzufügen</span>
           <span x-show="analyzingRecipe">⏳ Wird analysiert…</span>
         </button>
@@ -2280,7 +2308,7 @@ function app() {
   <!-- Einkaufsliste -->
   <div x-show="selectedMealIds.length > 0" style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
 
-    <!-- LINKS: Gesamtliste nach Kategorien -->
+    <!-- LINKS: Gesamtliste, nach Kategorien gegliedert -->
     <div class="card">
       <div class="card-header">
         <h3 style="font-size:0.95rem;font-weight:700">🛒 Einkaufsliste</h3>
@@ -2289,11 +2317,14 @@ function app() {
       <div style="padding:6px 16px 4px">
         <template x-for="group in shoppingListGrouped()" :key="group.id">
           <div style="margin-bottom:10px">
-            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#aaa;padding:6px 0 3px;border-bottom:1px solid #ede9e4" x-text="group.name"></div>
+            <!-- Kategorie-Header -->
+            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#aaa;padding:6px 0 3px;border-bottom:1px solid #ede9e4"
+                 x-text="group.name"></div>
             <template x-for="item in group.items" :key="item.key">
               <div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f7f5f2">
                 <span style="font-size:0.88rem;flex:1" x-text="item.name"></span>
                 <span style="font-size:0.82rem;color:#444;font-weight:600;white-space:nowrap" x-text="item.display"></span>
+                <!-- Admin: Kategorie überschreiben -->
                 <select x-show="me==='admin'"
                         style="font-size:0.7rem;border:1px solid #e8e5e0;border-radius:4px;padding:1px 3px;color:#aaa;background:#fff;cursor:pointer"
                         :value="item.categoryId"
@@ -2302,17 +2333,21 @@ function app() {
                     <option :value="cat.id" x-text="cat.name"></option>
                   </template>
                 </select>
+                <!-- Manuell: löschen -->
                 <button x-show="item.manual" @click="removeManualShoppingItem(item.key)"
                         style="background:none;border:none;color:#ccc;cursor:pointer;font-size:0.9rem;padding:0;line-height:1">×</button>
               </div>
             </template>
           </div>
         </template>
+        <!-- Manuell hinzufügen -->
         <div style="display:flex;gap:5px;padding:8px 0 6px;flex-wrap:wrap">
-          <input type="text" x-model="newManualItem" placeholder="Artikel"
+          <input type="text" x-model="newManualItem"
+                 placeholder="Artikel"
                  @keydown.enter="addManualShoppingItem()"
                  style="flex:2;min-width:100px;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
-          <input type="text" x-model="newManualItemAmount" placeholder="Menge (opt.)"
+          <input type="text" x-model="newManualItemAmount"
+                 placeholder="Menge (opt.)"
                  @keydown.enter="addManualShoppingItem()"
                  style="flex:1;min-width:70px;font-size:0.82rem;border:1px solid #e0ddd8;border-radius:6px;padding:5px 8px">
           <button class="btn btn-sm" @click="addManualShoppingItem()" :disabled="!newManualItem.trim()">+</button>
@@ -2322,6 +2357,8 @@ function app() {
 
     <!-- RECHTS: Zuweisung + persönliche Liste -->
     <div style="display:flex;flex-direction:column;gap:10px">
+
+      <!-- Wer kauft was (admin) -->
       <div x-show="me==='admin'" class="card">
         <div class="card-header"><h3 style="font-size:0.88rem;font-weight:700">Wer kauft was?</h3></div>
         <div style="padding:8px 16px">
@@ -2340,10 +2377,12 @@ function app() {
           </template>
         </div>
       </div>
+
+      <!-- Persönliche Liste -->
       <div class="card" x-show="myShoppingItems().length > 0">
         <div class="card-header">
           <h3 style="font-size:0.88rem;font-weight:700">Das besorge ich:</h3>
-          <button class="btn btn-sm" @click="copyMyShoppingList()" style="font-size:0.75rem">📋 Kopieren</button>
+          <button class="btn btn-sm" @click="copyMyShoppingList()" style="font-size:0.75rem" title="Als Markdown kopieren">📋 Kopieren</button>
         </div>
         <div style="padding:8px 16px">
           <template x-for="item in myShoppingItems()" :key="item.key">
@@ -2354,11 +2393,13 @@ function app() {
           </template>
         </div>
       </div>
+
       <div x-show="me!=='admin' && myShoppingItems().length===0"
            style="font-size:0.82rem;color:#bbb;text-align:center;padding:12px 0">
         Der Admin hat dir noch keine Einkaufskategorie zugewiesen.
       </div>
     </div>
+
   </div>
 
 </div><!-- /food tab -->
