@@ -1909,6 +1909,262 @@ function app() {
 </div>
 
 
+<!-- ══════════════════════════ SPIELAUSWAHL ══ -->
+<div class="content" x-show="tab==='games'">
+
+  <!-- Sub-Tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:16px">
+    <button class="btn btn-sm" :style="gameSubTab==='list'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':''" @click="gameSubTab='list'">🎲 Spiele</button>
+    <button class="btn btn-sm" :style="gameSubTab==='schedule'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':''" @click="gameSubTab='schedule'">📅 Spielplan</button>
+  </div>
+
+  <!-- ── LISTE ── -->
+  <div x-show="gameSubTab==='list'">
+
+    <!-- Suche (admin only, BGG-API ausstehend) -->
+    <div x-show="me==='admin'" class="card" style="padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" x-model="gameQuery" @keydown.enter="searchGames()"
+               placeholder="Spiel auf BoardGameGeek suchen…"
+               style="flex:1;padding:8px 12px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.88rem">
+        <button class="btn" @click="searchGames()" :disabled="gameSearchLoading"
+                style="padding:8px 14px;font-size:0.85rem">
+          <span x-show="!gameSearchLoading">🔍 Suchen</span>
+          <span x-show="gameSearchLoading">…</span>
+        </button>
+      </div>
+      <div x-show="gameSearchError" style="font-size:0.8rem;color:#e53935;margin-top:6px" x-text="gameSearchError"></div>
+      <!-- Suchergebnisse -->
+      <div x-show="gameSearchResults.length > 0" @click.away="gameSearchResults=[]"
+           style="border:1px solid #e8e6e0;border-radius:8px;margin-top:8px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08)">
+        <template x-for="r in gameSearchResults" :key="r.id">
+          <div @click="addGame(r.id)"
+               :style="gameAddLoading===r.id ? 'opacity:0.4;pointer-events:none' : 'cursor:pointer'"
+               style="padding:9px 14px;border-bottom:1px solid #f0ede8;display:flex;justify-content:space-between;align-items:center"
+               @mouseenter="$el.style.background='#faf9f7'" @mouseleave="$el.style.background=''">
+            <span style="font-size:0.88rem" x-text="r.name"></span>
+            <span style="font-size:0.75rem;color:#bbb" x-text="r.year"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Sortierleiste -->
+    <div x-show="games.length > 0" style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <span class="section-label" style="margin:0 6px 0 0">Sortieren:</span>
+      <template x-for="opt in [{k:'votes',l:'Votes'},{k:'rating',l:'BGG-Wertung'},{k:'duration',l:'Länge'},{k:'name',l:'A–Z'}]" :key="opt.k">
+        <button class="btn btn-sm"
+                :style="gameSortBy===opt.k ? 'background:#1a1a1a;color:#fff;border-color:#1a1a1a' : ''"
+                @click="gameSortBy===opt.k ? gameSortDir=(gameSortDir==='desc'?'asc':'desc') : (gameSortBy=opt.k, gameSortDir='desc')">
+          <span x-text="opt.l"></span>
+          <span x-show="gameSortBy===opt.k" x-text="gameSortDir==='desc'?'↓':'↑'" style="margin-left:3px"></span>
+        </button>
+      </template>
+      <span style="margin-left:auto;font-size:0.78rem;color:#bbb" x-text="games.length + ' Spiel' + (games.length===1?'':'e')"></span>
+    </div>
+
+    <!-- Leer-State -->
+    <div x-show="games.length === 0" class="card" style="text-align:center;padding:60px 20px;color:#aaa">
+      <div style="font-size:2.5rem;margin-bottom:10px">🎲</div>
+      <p style="font-size:0.88rem">Noch keine Spiele vorgeschlagen.<br>Einfach oben suchen und hinzufügen!</p>
+    </div>
+
+    <!-- Spielkarten -->
+    <template x-for="game in sortedGames" :key="game.id">
+      <div class="card" style="position:relative;overflow:hidden;padding:0;margin-bottom:10px;border:none">
+        <!-- Farbwelt-Hintergrund -->
+        <div x-show="game.thumbnail"
+             :style="`position:absolute;inset:0;background-image:url('${game.thumbnail}');background-size:cover;background-position:center;filter:blur(28px) saturate(1.1);opacity:0.22;transform:scale(1.35);z-index:0;pointer-events:none`"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,0.55) 0%,rgba(255,255,255,0.82) 40%,rgba(255,255,255,0.95) 100%);z-index:1;pointer-events:none"></div>
+        <div :style="`position:absolute;left:0;top:0;bottom:0;width:4px;background:${gameAccentColor(game)};z-index:2`"></div>
+        <!-- Content -->
+        <div style="position:relative;z-index:2;display:flex;gap:14px;padding:14px 16px 14px 20px">
+          <!-- Cover -->
+          <a :href="game.bggUrl" target="_blank" style="flex-shrink:0;display:block;align-self:flex-start">
+            <img :src="game.thumbnail" alt=""
+                 style="width:80px;height:110px;object-fit:cover;border-radius:7px;display:block;box-shadow:0 2px 10px rgba(0,0,0,0.18)"
+                 @error="$el.parentElement.style.display='none'">
+          </a>
+          <!-- Info -->
+          <div style="flex:1;min-width:0">
+            <!-- Titel + Badges -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+              <span style="font-weight:700;font-size:0.97rem" x-text="game.name"></span>
+              <!-- Dauer-Badge: für Admin als Dropdown, sonst Label -->
+              <template x-if="me==='admin'">
+                <select x-model="game.durationCat" @change="games=[...games]; scheduleSave($data)"
+                        style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;border:none;cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none"
+                        :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'">
+                  <option value="kurz">⚡ Kurz</option>
+                  <option value="mittel">⏱ Mittel</option>
+                  <option value="lang">⏳ Lang</option>
+                </select>
+              </template>
+              <template x-if="me!=='admin'">
+                <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0"
+                      :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
+                      x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
+              </template>
+              <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
+            </div>
+            <!-- Spieler & Zeit -->
+            <div style="font-size:0.79rem;color:#888;margin-bottom:5px">
+              <span x-show="game.minPlayers">
+                👥 <span x-text="game.minPlayers===game.maxPlayers ? game.minPlayers+'P' : game.minPlayers+'–'+game.maxPlayers+'P'"></span>
+                <span x-show="game.bestPlayers"> · best: <span x-text="game.bestPlayers"></span></span>
+              </span>
+              <span x-show="game.maxPlaytime" :style="game.minPlayers?'margin-left:10px':''">
+                🕐 <span x-text="(game.minPlaytime&&game.minPlaytime!==game.maxPlaytime?game.minPlaytime+'–':'')+game.maxPlaytime+' Min'"></span>
+              </span>
+            </div>
+            <!-- Beschreibung -->
+            <p x-show="game.description" x-text="game.description"
+               style="font-size:0.8rem;color:#555;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
+            <!-- Links -->
+            <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
+              <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
+              <a x-show="game.rulesUrl" :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
+              <a x-show="game.bggUrl" :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
+            </div>
+            <!-- Votes -->
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <template x-for="opt in [{v:'vollbock',l:'🔥 Voll Bock'},{v:'bock',l:'👍 Bock'},{v:'keinbock',l:'👎 Kein Bock'}]" :key="opt.v">
+                <button class="btn btn-sm"
+                        :style="(gameVotes[game.id]||{})[me]===opt.v
+                          ? (opt.v==='vollbock'?'background:#e8f5e9;border-color:#81c784;color:#2e7d32;font-weight:700'
+                            :opt.v==='bock'?'background:#e3f2fd;border-color:#64b5f6;color:#1565c0;font-weight:700'
+                            :'background:#fce4ec;border-color:#e57373;color:#c62828;font-weight:700') : ''"
+                        @click="setGameVote(game.id, opt.v)">
+                  <span x-text="opt.l"></span>
+                  <span x-show="gameVoteCount(game.id, opt.v) > 0"
+                        x-text="' · '+gameVoteCount(game.id, opt.v)"
+                        style="opacity:0.6;font-size:0.85em"></span>
+                </button>
+              </template>
+              <button x-show="me==='admin'" class="btn btn-sm"
+                      style="margin-left:auto;color:#cc3333;border-color:#ffcdd2"
+                      @click="removeGame(game.id)" title="Spiel entfernen">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+  </div><!-- /list -->
+
+  <!-- ── SPIELPLAN ── -->
+  <div x-show="gameSubTab==='schedule'">
+
+    <!-- Kein Termin verfügbar -->
+    <div x-show="!finalDate && (!booking.checkin||!booking.checkout)" class="card"
+         style="text-align:center;padding:48px 20px;opacity:0.45">
+      <div style="font-size:2rem;margin-bottom:8px">📅</div>
+      <p style="font-size:0.88rem">Erst einen Termin fixieren — dann kann der Spielplan befüllt werden.</p>
+    </div>
+
+    <!-- Tage -->
+    <template x-for="day in scheduleDays" :key="day">
+      <div class="card" style="padding:16px 18px;margin-bottom:12px">
+
+        <!-- Tag-Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div>
+            <span style="font-weight:700;font-size:0.95rem" x-text="formatDay(day)"></span>
+            <span style="color:#bbb;font-size:0.78rem;margin-left:6px"
+                  x-text="daySlotsFilled(day)+'/8 Slots · '+daySlotsFree(day)+' frei (bis 23:00)'"></span>
+          </div>
+          <div style="display:flex;gap:2px" :title="daySlotsFree(day)+' Slots frei'">
+            <template x-for="(slot,si) in daySlotDisplay(day)" :key="si">
+              <div style="width:16px;height:16px;border-radius:3px;transition:background 0.2s"
+                   :style="slot?'background:'+slot.color:'background:#f0ede8;border:1px solid #e8e6e0'"
+                   :title="slot?slot.name:'frei'"></div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Uhrzeiten + Spielerzahlen -->
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:3px">
+          <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30']" :key="i">
+            <div style="text-align:center;line-height:1.3"
+                 :style="(i < dayFirstSlot(day) || i > dayLastSlot(day)) ? 'opacity:0.3' : ''">
+              <div style="font-size:0.6rem;color:#aaa" x-text="t"></div>
+              <div style="font-size:0.65rem;font-weight:600"
+                   :style="slotPlayerCount(day,i)>=2 ? 'color:#4caf50' : 'color:#e53935'"
+                   x-text="'👤×'+slotPlayerCount(day,i)"></div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Kachel-Grid -->
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;min-height:110px;margin-bottom:8px"
+             @dragover.prevent @drop="scheduleDrop(day,'__end')">
+          <!-- Belegte Kacheln -->
+          <template x-for="gid in (schedule[day]||[])" :key="gid">
+            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid))}"
+                 x-show="games.find(x=>x.id===gid)"
+                 :draggable="me==='admin'"
+                 @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
+                 @dragend="scheduleDragEnd()"
+                 @dragover="me==='admin' && scheduleDragOverTarget(day, gid, $event)"
+                 @drop.stop="me==='admin' && scheduleDrop(day, gid)"
+                 :style="'grid-column:span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                   + (scheduleDragGid===gid ? 'opacity:0.4;' : '')
+                   + (scheduleDragOver===day+'|'+gid ? 'box-shadow:inset 3px 0 0 #1a73e8;' : '')
+                   + (gameHasPlayerMismatch(day,gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
+                   + (me==='admin' ? 'cursor:grab;' : '')">
+              <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
+                <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
+                <div x-show="gameHasPlayerMismatch(day,gid)"
+                     style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
+              </div>
+              <button x-show="me==='admin'" @click.stop="scheduleRemove(day,gid)"
+                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
+            </div>
+          </template>
+          <!-- Freie Slot-Platzhalter -->
+          <template x-for="(_, fi) in Array.from({length: daySlotsFree(day)})" :key="'e'+fi">
+            <div x-data="{si: (schedule[day]||[]).reduce((s,gid)=>s+gameSlots(games.find(x=>x.id===gid)),0)+fi}"
+                 @dragover="me==='admin' && scheduleDragOverTarget(day, '__end', $event)"
+                 @drop.stop="me==='admin' && scheduleDrop(day, '__end')"
+                 :style="(si < dayFirstSlot(day) || si > dayLastSlot(day))
+                   ? 'border:1px dashed #e0ddd8;border-radius:8px;background:#f5f5f3;opacity:0.4'
+                   : 'border:1px dashed #e0ddd8;border-radius:8px;background:#faf9f7;'
+                     +(scheduleDragOver===day+'|__end'?'background:#e8f0fe;border-color:#1a73e8;':'')">
+            </div>
+          </template>
+        </div>
+
+        <!-- Leer-State -->
+        <div x-show="(schedule[day]||[]).length===0 && me!=='admin'"
+             style="text-align:center;padding:16px;color:#ccc;font-size:0.82rem">
+          Noch keine Spiele für diesen Tag geplant.
+        </div>
+
+        <!-- Admin: Spiel hinzufügen -->
+        <div x-show="me==='admin' && daySlotsFree(day)>0 && gamesAvailableForDay(day).length>0">
+          <select @change="if($event.target.value){scheduleAdd(day,$event.target.value);$event.target.value=''}"
+                  style="width:100%;padding:7px 10px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.82rem;color:#555;background:#fff;cursor:pointer">
+            <option value="">+ Spiel hinzufügen…</option>
+            <template x-for="g in gamesAvailableForDay(day)" :key="g.id">
+              <option :value="g.id"
+                      x-text="g.name+' ('+gameSlots(g)+' Slot'+(gameSlots(g)>1?'s':'')+')'"></option>
+            </template>
+          </select>
+        </div>
+        <div x-show="me==='admin' && daySlotsFree(day)===0"
+             style="font-size:0.78rem;color:#bbb;text-align:center;padding-top:4px">
+          Tag voll — alle 8 Slots belegt.
+        </div>
+
+      </div>
+    </template>
+
+  </div><!-- /schedule -->
+
+</div><!-- /games tab -->
+
 <!-- ══════════════════════════ ESSENSPLANUNG ══ -->
 <div class="content" x-show="tab==='food'">
 
