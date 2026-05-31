@@ -740,6 +740,11 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📍 Adresse</div><input type="text" x-model="booking.address" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Straße, PLZ Ort"></div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">👤 Vermieter</div><input type="text" x-model="booking.host" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Name / Plattform"></div>
         </div>
+        <template x-if="bookingMapUrl()">
+          <div style="margin-top:16px;border-radius:10px;overflow:hidden;border:1px solid #e0ddd8;height:160px">
+            <iframe :src="bookingMapUrl()" width="100%" height="100%" style="border:none;display:block" scrolling="no"></iframe>
+          </div>
+        </template>
         <div style="margin-top:20px">
           <div class="section-label">Wer kommt wann?</div>
           <div style="margin-top:8px">
@@ -1022,7 +1027,7 @@ function app() {
     statsDropzone: false,
 
     checkGate() {
-      const GATE_PW = 'bswe2025';
+      const GATE_PW = 'bswe2026';
       if (this.gateInput === GATE_PW) {
         localStorage.setItem('bswe_gate', '1');
         this.siteUnlocked = true;
@@ -1142,6 +1147,17 @@ function app() {
       return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`;
     },
 
+    bookingMapUrl() {
+      const venue = this.bookedVenue;
+      const loc = venue?.location?.trim();
+      if (loc) {
+        if (!Object.prototype.hasOwnProperty.call(this.coordsCache, loc)) { this.geocodeCity(loc); return null; }
+        const c = this.coordsCache[loc];
+        if (c) { const d=0.18; return `https://www.openstreetmap.org/export/embed.html?bbox=${c.lng-d}%2C${c.lat-d*0.7}%2C${c.lng+d}%2C${c.lat+d*0.7}&layer=mapnik&marker=${c.lat}%2C${c.lng}`; }
+      }
+      return null;
+    },
+
     // ── Overview ──
     avgCostPerPerson(){ if(!this.pastEvents.length)return 0; return Math.round(this.pastEvents.reduce((s,e)=>s+e.costPerPerson,0)/this.pastEvents.length); },
     totalSpent(){ return this.pastEvents.reduce((s,e)=>s+e.total,0); },
@@ -1193,7 +1209,7 @@ function app() {
       if(!this.newDate.from||!this.newDate.to) return;
       const fmt=s=>new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
       const id='d'+Date.now();
-      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,proposedBy:this.me});
+      this.dates.push({id,label:fmt(this.newDate.from)+' – '+fmt(this.newDate.to),sub:this.newDate.sub,proposedBy:this.me,from:this.newDate.from,to:this.newDate.to});
       this.votes[id]={};
       this.newDate={from:'',to:'',sub:''};
     },
@@ -1213,9 +1229,11 @@ function app() {
         this.booking.address = v.location || '';
         this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'Privat' : '');
         this.booking.keyCode = '';
-        this.booking.checkin = '';
-        this.booking.checkout = '';
         this.booking.notes = v.notes || '';
+        const fd = this.finalDateId ? this.dates.find(x => x.id === this.finalDateId) : null;
+        const fmtDE = s => s ? new Date(s).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+        this.booking.checkin  = fmtDE(fd?.from) || '';
+        this.booking.checkout = fmtDE(fd?.to)   || '';
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
