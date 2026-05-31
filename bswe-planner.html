@@ -1590,12 +1590,7 @@ function app() {
     scheduleForDay(dateStr) {
       const raw = this.schedule[dateStr];
       if (!raw) return {};
-      if (Array.isArray(raw)) {
-        const migrated = this.migrateScheduleDay(raw);
-        // Persist migration
-        this.schedule = {...this.schedule, [dateStr]: migrated};
-        return migrated;
-      }
+      if (Array.isArray(raw)) return this.migrateScheduleDay(raw); // pure, no side effect
       return raw;
     },
     occupiedSlots(dateStr) {
@@ -1685,14 +1680,44 @@ function app() {
       this.scheduleDragOver = day + '|' + slotIndex;
     },
     scheduleDrop(targetDay, targetSlot) {
-      const srcGid = this.scheduleDragGid;
+      const srcGid = isNaN(this.scheduleDragGid) ? this.scheduleDragGid : +this.scheduleDragGid;
       const srcDay = this.scheduleDragDay;
       this.scheduleDragOver = null;
       this.scheduleDragGid = null;
       this.scheduleDragDay = null;
       if (srcGid == null) return;
-      this.scheduleRemove(srcDay, srcGid);
-      this.scheduleAddAtSlot(targetDay, targetSlot, srcGid);
+
+      const game = this.games.find(g => g.id === srcGid);
+      if (!game) return;
+      const span = this.gameSlots(game);
+
+      // Atomares Update: einmal lesen, modifizieren, einmal schreiben
+      const newSch = JSON.parse(JSON.stringify(this.schedule));
+      // Migration falls nötig
+      if (Array.isArray(newSch[srcDay]))  newSch[srcDay]  = this.migrateScheduleDay(newSch[srcDay]);
+      if (Array.isArray(newSch[targetDay])) newSch[targetDay] = this.migrateScheduleDay(newSch[targetDay]);
+
+      // Aus Quelle entfernen
+      const src = newSch[srcDay] || {};
+      for (const k of Object.keys(src)) { if ((isNaN(src[k])?src[k]:+src[k]) === srcGid) delete src[k]; }
+      newSch[srcDay] = src;
+
+      // Prüfen ob Zielslot passt
+      const tgt = newSch[targetDay] || {};
+      const occ = new Set();
+      for (const [k, v] of Object.entries(tgt)) {
+        const g = this.games.find(x => x.id === +v || x.id === v);
+        const s = g ? this.gameSlots(g) : 1;
+        for (let i = 0; i < s; i++) occ.add(+k + i);
+      }
+      for (let i = 0; i < span; i++) {
+        if (occ.has(targetSlot + i) || targetSlot + i > 8) return; // passt nicht
+      }
+
+      // In Ziel einfügen
+      newSch[targetDay] = {...tgt, [targetSlot]: srcGid};
+      this.schedule = newSch;
+      scheduleSave(this);
     },
     scheduleDragEnd() {
       this.scheduleDragOver = null;
