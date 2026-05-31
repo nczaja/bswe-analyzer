@@ -1548,13 +1548,15 @@ function app() {
 
     // ── Schedule logic ──
     get scheduleDays() {
-      // Priorität: gebuchter Termin → fixierter Termin aus Abstimmung
+      // Priorität: fixierter Termin (ISO-Datum) → booking.checkin nur wenn ISO-Format
       let from, to;
-      if (this.booking && this.booking.checkin && this.booking.checkout) {
-        from = this.booking.checkin; to = this.booking.checkout;
-      } else if (this.finalDateId) {
+      if (this.finalDateId) {
         const fd = this.dates.find(x => x.id === this.finalDateId);
         if (fd && fd.from && fd.to) { from = fd.from; to = fd.to; }
+      }
+      // Fallback: booking nur wenn Werte im ISO-Format YYYY-MM-DD sind
+      if (!from && this.booking && /^\d{4}-\d{2}-\d{2}/.test(this.booking.checkin) && /^\d{4}-\d{2}-\d{2}/.test(this.booking.checkout)) {
+        from = this.booking.checkin.slice(0,10); to = this.booking.checkout.slice(0,10);
       }
       if (!from || !to) return [];
       const days=[], d=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
