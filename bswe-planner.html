@@ -26,6 +26,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .landing-other:hover { border-color: #aaa; color: #1a1a1a; }
 .landing-admin { background: none; border: none; color: #ccc; font-size: 0.77rem; cursor: pointer; margin-top: 28px; text-decoration: underline; }
 .landing-admin:hover { color: #888; }
+.landing-new-toggle { background: none; border: 1px dashed #ccc; border-radius: 8px; color: #888; font-size: 0.82rem; cursor: pointer; padding: 8px 18px; margin-top: 24px; transition: all 0.15s; }
+.landing-new-toggle:hover { border-color: #888; color: #333; }
+.landing-new-form { margin-top: 16px; background: #fff; border: 1px solid #e8e6e0; border-radius: 12px; padding: 20px; max-width: 320px; width: 100%; text-align: left; }
+.landing-new-form input { width: 100%; border: 1px solid #ddd; border-radius: 7px; padding: 8px 11px; font-size: 0.88rem; font-family: inherit; margin-bottom: 8px; }
+.landing-new-form input:focus { outline: none; border-color: #1a1a1a; }
+.landing-new-submit { width: 100%; padding: 10px; border-radius: 8px; background: #1a1a1a; color: #fff; border: none; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+.landing-new-submit:disabled { background: #ccc; cursor: not-allowed; }
+.landing-new-cancel { background: none; border: none; color: #aaa; font-size: 0.77rem; cursor: pointer; margin-top: 10px; text-decoration: underline; width: 100%; text-align: center; }
+.identity-toast { font-size: 0.75rem; color: #4a7c59; font-weight: 600; }
 
 /* ── APP CHROME ── */
 .app-header { background: #1a1a1a; color: #f5f4f0; padding: 16px 24px; display: flex; align-items: baseline; gap: 12px; }
@@ -35,7 +44,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .identity-bar { background: #fff; border-bottom: 1px solid #e8e6e0; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: background 0.2s; }
 .identity-bar.admin-mode { background: #fffbeb; border-bottom-color: #e8b84b; }
 .identity-bar label { font-size: 0.78rem; color: #888; }
-.identity-bar select { font-size: 0.84rem; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; background: #fff; cursor: pointer; }
+.identity-bar .identity-name { font-size: 0.9rem; font-weight: 700; color: #1a1a1a; }
 .identity-bar input[type=text] { font-size: 0.84rem; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; background: #fff; }
 .identity-sep { color: #e0ddd8; margin: 0 2px; }
 .admin-badge { background: #fff3cd; color: #8a5800; border: 1px solid #e8b84b; border-radius: 6px; padding: 3px 9px; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.03em; }
@@ -270,34 +279,31 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div class="landing-title">BSWE Planner</div>
   <div class="landing-sub">Brettspielwochenende</div>
 
-  <!-- Return-visit: "Bist du X?" -->
-  <div x-show="savedIdentity" style="text-align:center;margin-top:20px">
-    <p class="landing-confirm-name" style="margin-bottom:20px">
-      Willkommen zurück! Bist du <strong x-text="peopleName(savedIdentity)"></strong>?
-    </p>
-    <div class="landing-confirm">
-      <button class="landing-yes" @click="confirmIdentity(savedIdentity)">Ja, weiter →</button>
-      <button class="landing-other" @click="savedIdentity = null">Ich bin jemand anderes</button>
-    </div>
-  </div>
+  <div style="text-align:center">
+    <p style="color:#999;margin-top:20px;font-size:0.88rem">Wer bist du?</p>
 
-  <!-- First visit: participant grid -->
-  <div x-show="!savedIdentity" style="text-align:center">
-    <p style="color:#999;margin-top:20px;font-size:0.88rem">
-      <span x-show="!currentEvent.archived">Wer bist du?</span>
-      <span x-show="currentEvent.archived">Kein aktives Event — meld dich als Admin an.</span>
-    </p>
-    <div class="landing-grid" x-show="!currentEvent.archived">
-      <template x-for="p in landingParticipants()" :key="p.id">
+    <!-- Personen-Grid (alle bekannten Personen aus der DB) -->
+    <div class="landing-grid" x-show="allPeople.length > 0">
+      <template x-for="p in allPeople" :key="p.id">
         <button class="landing-btn" @click="confirmIdentity(p.id)" x-text="p.name"></button>
       </template>
     </div>
-    <div style="margin-top:28px" x-show="currentEvent.archived">
-      <button class="landing-yes" @click="confirmIdentity('admin')">Als Admin fortfahren</button>
+    <p x-show="allPeople.length === 0" style="color:#bbb;margin-top:20px;font-size:0.85rem">Daten werden geladen…</p>
+
+    <!-- Self-Registration -->
+    <div x-show="!showNewForm">
+      <button class="landing-new-toggle" @click="showNewForm = true">+ Ich bin neu hier</button>
     </div>
-    <button class="landing-admin" @click="confirmIdentity('admin')" x-show="!currentEvent.archived">
-      Als Admin fortfahren
-    </button>
+    <div class="landing-new-form" x-show="showNewForm">
+      <p style="font-size:0.85rem;color:#555;margin-bottom:14px;font-weight:600">Neu anmelden</p>
+      <input type="text" x-model="newPerson.name" placeholder="Name *" @keydown.enter="registerAndLogin()">
+      <input type="text" x-model="newPerson.short" placeholder="Kürzel (z.B. NC) — optional">
+      <input type="text" x-model="newPerson.hometown" placeholder="Heimatort — optional" @keydown.enter="registerAndLogin()">
+      <button class="landing-new-submit" @click="registerAndLogin()" :disabled="!newPerson.name.trim()">Anmelden →</button>
+      <button class="landing-new-cancel" @click="showNewForm = false; newPerson = {name:'',short:'',hometown:''}">Abbrechen</button>
+    </div>
+
+    <button class="landing-admin" @click="confirmIdentity('admin')">Als Admin fortfahren</button>
   </div>
 </div>
 
@@ -312,12 +318,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 <!-- Identity bar -->
 <div class="identity-bar" :class="me==='admin' ? 'admin-mode' : ''">
   <label>Ich bin:</label>
-  <select @change="me = $event.target.value; onMeChange()">
-    <option value="admin" :selected="me === 'admin'">Admin</option>
-    <template x-for="p in allPeople" :key="p.id">
-      <option :value="p.id" :selected="me === p.id" x-text="p.name"></option>
-    </template>
-  </select>
+  <span class="identity-name" x-text="me === 'admin' ? 'Admin' : peopleName(me)"></span>
   <span x-show="me==='admin'" class="admin-badge">⚠ ADMIN-MODUS</span>
   <span x-show="me!=='admin'" class="identity-sep">·</span>
   <template x-if="me!=='admin'">
@@ -329,6 +330,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         title="Für Anreise-Berechnung">
     </span>
   </template>
+  <span class="identity-toast" x-show="loginToast" x-transition.opacity>✓ Angemeldet</span>
   <button class="switch-btn" @click="switchIdentity()">Wechseln</button>
 </div>
 
@@ -1007,6 +1009,8 @@ function app() {
     gateError: false,
     identityConfirmed: false,
     savedIdentity: null,
+    showNewForm: false,
+    loginToast: false,
     urlInput: '', dupWarning: null, analyzing: false, loadingStep: '',
     lightboxSrc: null,
     coordsCache: {}, geoLoading: {},
@@ -1214,18 +1218,27 @@ function app() {
     async init() {
       // Gate: Passwort nur beim ersten Besuch abfragen
       if (localStorage.getItem('bswe_gate') === '1') this.siteUnlocked = true;
-      // Lokale Identity wiederherstellen
-      const saved = localStorage.getItem('bswe_identity');
-      if (saved) this.savedIdentity = saved;
 
-      // State von Supabase laden
+      // State von Supabase laden (zuerst — damit peopleName() beim Identity-Check funktioniert)
       const remote = await supabaseGet();
       if (remote) {
         PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
       }
 
+      // Lokale Identity validieren und ggf. Auto-Login
+      const saved = localStorage.getItem('bswe_identity');
+      if (saved && (saved === 'admin' || this.allPeople.find(p => p.id === saved))) {
+        this.me = saved === 'admin' ? 'admin' : saved;
+        if (saved !== 'admin') this.newExp.personId = saved;
+        this.savedIdentity = saved;
+        this.identityConfirmed = true;
+        this.loginToast = true;
+        setTimeout(() => { this.loginToast = false; }, 3000);
+      } else {
+        localStorage.removeItem('bswe_identity');
+      }
+
       this.recalcSettlement();
-      this.newExp.personId = this.me;
       this.venues.forEach(v => { if (v.location) this.geocodeCity(v.location); });
 
       // Auto-Save bei jeder Datenänderung
@@ -1236,15 +1249,27 @@ function app() {
     },
 
     // ── Identity / Landing ──
-    landingParticipants() {
-      return this.allPeople.filter(p => this.currentParticipantIds.includes(p.id));
+    registerAndLogin() {
+      if (!this.newPerson.name.trim()) return;
+      const id = 'p' + Date.now();
+      const short = this.newPerson.short.trim() || this.newPerson.name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const hometown = this.newPerson.hometown.trim();
+      this.allPeople = [...this.allPeople, {id, name: this.newPerson.name.trim(), short, hometown}];
+      this.currentParticipantIds = [...this.currentParticipantIds, id];
+      if (hometown) this.geocodeCity(hometown);
+      this.newPerson = {name:'', short:'', hometown:''};
+      this.showNewForm = false;
+      this.confirmIdentity(id);
     },
     confirmIdentity(id) {
       this.me = id === 'admin' ? 'admin' : id;
-      if (id !== 'admin') this.newExp.personId = id;
       this.identityConfirmed = true;
-      this.savedIdentity = id;
-      localStorage.setItem('bswe_identity', id);
+      if (id !== 'admin') {
+        this.newExp.personId = id;
+        this.savedIdentity = id;
+        localStorage.setItem('bswe_identity', id);
+      }
+      // Admin: kein localStorage — beim nächsten Besuch wieder Landing zeigen
     },
     switchIdentity() {
       this.identityConfirmed = false;
@@ -1253,13 +1278,7 @@ function app() {
     },
 
     myPerson() { return this.allPeople.find(p => p.id === this.me); },
-    onMeChange() {
-      if (this.me !== 'admin') {
-        this.newExp.personId = this.me;
-        localStorage.setItem('bswe_identity', this.me);
-        this.savedIdentity = this.me;
-      }
-    },
+    onMeChange() {}, // Dropdown entfernt — nicht mehr benötigt
     updateHometown(id, val) {
       this.allPeople = this.allPeople.map(p => p.id===id ? {...p, hometown:val.trim()} : p);
       if (val.trim()) this.geocodeCity(val.trim());
