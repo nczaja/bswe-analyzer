@@ -251,8 +251,21 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 </head>
 <body x-data="app()" x-init="init()">
 
+<!-- ══════════════════════════════════ GATE / PASSWORD SCREEN ══ -->
+<div class="landing" x-show="!siteUnlocked" x-cloak>
+  <div class="landing-logo">🔒</div>
+  <div class="landing-title">BSWE Planner</div>
+  <div class="landing-sub">Brettspielwochenende</div>
+  <div style="text-align:center;margin-top:24px">
+    <input type="password" x-model="gateInput" @keydown.enter="checkGate()"
+      placeholder="Passwort" style="width:200px;padding:10px 14px;border-radius:8px;border:1.5px solid #444;background:#1a1a2e;color:#fff;font-size:1rem;text-align:center;outline:none">
+    <div x-show="gateError" style="color:#e74c3c;font-size:0.85rem;margin-top:8px">Falsches Passwort</div>
+    <button class="landing-btn" @click="checkGate()" style="margin-top:16px;display:block;margin-left:auto;margin-right:auto">Weiter →</button>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════ LANDING / IDENTITY SCREEN ══ -->
-<div class="landing" x-show="!identityConfirmed" x-cloak>
+<div class="landing" x-show="siteUnlocked && !identityConfirmed" x-cloak>
   <div class="landing-logo">🎲</div>
   <div class="landing-title">BSWE Planner</div>
   <div class="landing-sub">Brettspielwochenende</div>
@@ -938,6 +951,9 @@ function app() {
   return {
     tab: 'overview',
     me: 'nico',
+    siteUnlocked: false,
+    gateInput: '',
+    gateError: false,
     identityConfirmed: false,
     savedIdentity: null,
     urlInput: '', dupWarning: null, analyzing: false, loadingStep: '',
@@ -1005,7 +1021,20 @@ function app() {
     bgPlayerMap: {},   // { [playerUuid]: personId | null }
     statsDropzone: false,
 
+    checkGate() {
+      const GATE_PW = 'bswe2025';
+      if (this.gateInput === GATE_PW) {
+        localStorage.setItem('bswe_gate', '1');
+        this.siteUnlocked = true;
+        this.gateError = false;
+      } else {
+        this.gateError = true;
+      }
+    },
+
     async init() {
+      // Gate: Passwort nur beim ersten Besuch abfragen
+      if (localStorage.getItem('bswe_gate') === '1') this.siteUnlocked = true;
       // Lokale Identity wiederherstellen
       const saved = localStorage.getItem('bswe_identity');
       if (saved) this.savedIdentity = saved;
