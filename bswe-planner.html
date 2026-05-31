@@ -936,7 +936,8 @@ const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentE
   'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
   'games','gameVotes','schedule',
   'recipes','foodVotes','selectedMealIds','foodLocked',
-  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories'];
+  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories',
+  'bgPlays','bgGames','bgPlayers','bgPlayerMap'];
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -1049,6 +1050,13 @@ function app() {
     ],
     gameVotes: {},
     schedule: {},
+    // ── BGStats ──
+    bgPlays: [],
+    bgGames: {},
+    bgPlayers: {},
+    bgPlayerMap: {},
+    statsDropzone: false,
+
     gameSubTab: 'list',
     gameQuery: '',
     gameSearchResults: [],
@@ -1985,6 +1993,129 @@ function app() {
       this.currentEvent={...this.currentEvent,archived:true};
       this.tab='overview';
     },
+
+    // ── BGStats Import ──
+    handleDrop(e){
+      this.statsDropzone=false;
+      this.handleBgsplayFiles(e.dataTransfer.files);
+    },
+    handleBgsplayFiles(files){
+      Array.from(files).forEach(f=>{
+        if(!f.name.endsWith('.bgsplay')&&!f.name.endsWith('.json')) return;
+        const r=new FileReader();
+        r.onload=ev=>this.parseBgsplay(ev.target.result);
+        r.readAsText(f);
+      });
+    },
+    parseBgsplay(text){
+      let data;
+      try { data=JSON.parse(text); } catch(e){ alert('Ungültige Datei'); return; }
+      const playerById={};
+      (data.players||[]).forEach(p=>{
+        playerById[p.id]=p;
+        if(!this.bgPlayers[p.uuid]){
+          const meta=JSON.parse(p.metaData||'{}');
+          this.bgPlayers={...this.bgPlayers,[p.uuid]:{uuid:p.uuid,name:p.name,isNpc:meta.isNpc===1}};
+        }
+        if(this.bgPlayerMap[p.uuid]===undefined){
+          const match=this.autoMatchPlayer(p.name);
+          this.bgPlayerMap={...this.bgPlayerMap,[p.uuid]:match};
+        }
+      });
+      const gameById={};
+      (data.games||[]).forEach(g=>{
+        gameById[g.id]=g;
+        if(!this.bgGames[g.uuid]){
+          this.bgGames={...this.bgGames,[g.uuid]:{uuid:g.uuid,name:g.name,thumbUrl:g.urlThumb||''}};
+        }
+      });
+      const existing=new Set(this.bgPlays.map(p=>p.uuid));
+      let added=0;
+      (data.plays||[]).forEach(play=>{
+        if(existing.has(play.uuid)) return;
+        const game=gameById[play.gameRefId];
+        const playerScores=(play.playerScores||[]).map(ps=>{
+          const p=playerById[ps.playerRefId];
+          return{uuid:p?.uuid||String(ps.playerRefId),score:ps.score,winner:ps.winner,rank:ps.rank,role:ps.role||null};
+        });
+        this.bgPlays=[...this.bgPlays,{
+          uuid:play.uuid,
+          playDate:(play.playDate||play.entryDate||'').slice(0,10),
+          durationMin:play.durationMin||0,
+          gameUuid:game?.uuid||String(play.gameRefId),
+          playerScores,
+        }];
+        added++;
+      });
+      if(added===0) alert('Alle Partien bereits importiert.');
+    },
+    autoMatchPlayer(name){
+      const lower=name.toLowerCase().trim();
+      const exact=this.allPeople.find(p=>p.name.toLowerCase()===lower);
+      if(exact) return exact.id;
+      const first=lower.split(/[\s_]/)[0];
+      const byFirst=this.allPeople.find(p=>p.name.toLowerCase().startsWith(first));
+      if(byFirst) return byFirst.id;
+      return null;
+    },
+    removePlay(uuid){ this.bgPlays=this.bgPlays.filter(p=>p.uuid!==uuid); },
+    clearStats(){ if(!confirm('Alle importierten Partien löschen?')) return; this.bgPlays=[]; this.bgGames={}; this.bgPlayers={}; this.bgPlayerMap={}; },
+
+    // ── Stats Computed ──
+    get statsSummary(){
+      const n=this.bgPlays.length;
+      const totalMin=this.bgPlays.reduce((s,p)=>s+(p.durationMin||0),0);
+      const games=new Set(this.bgPlays.map(p=>p.gameUuid)).size;
+      return{plays:n,games,hours:Math.round(totalMin/60*10)/10,avgMin:n?Math.round(totalMin/n):0};
+    },
+    get statsLeaderboard(){
+      const entries=Object.entries(this.bgPlayerMap)
+        .filter(([uuid,pid])=>pid&&this.bgPlayers[uuid]&&!this.bgPlayers[uuid].isNpc);
+      return entries.map(([uuid,pid])=>{
+        const person=this.allPeople.find(p=>p.id===pid);
+        let plays=0,wins=0,expectedWins=0;
+        this.bgPlays.forEach(play=>{
+          const ps=play.playerScores.find(s=>s.uuid===uuid);
+          if(!ps) return;
+          plays++;
+          if(ps.winner) wins++;
+          const totalCount=play.playerScores.length;
+          if(totalCount>0) expectedWins+=1/totalCount;
+        });
+        const winRate=plays>0?Math.round(wins/plays*100):0;
+        const expectedRate=plays>0?Math.round(expectedWins/plays*100):0;
+        return{personId:pid,name:person?.name||uuid.slice(0,8),plays,wins,winRate,expectedRate,delta:winRate-expectedRate};
+      }).sort((a,b)=>b.wins-a.wins||b.winRate-a.winRate);
+    },
+    get statsUnmapped(){
+      return Object.entries(this.bgPlayers)
+        .filter(([uuid,p])=>!p.isNpc&&(this.bgPlayerMap[uuid]===null||this.bgPlayerMap[uuid]===undefined))
+        .map(([uuid,p])=>({uuid,name:p.name}));
+    },
+    get statsNpcs(){
+      return Object.values(this.bgPlayers).filter(p=>p.isNpc).map(p=>p.name);
+    },
+    get playsGroupedByDate(){
+      const days=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+      const sorted=[...this.bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
+      const groups=[];
+      sorted.forEach(play=>{
+        const last=groups[groups.length-1];
+        if(last&&last.date===play.playDate){ last.plays.push(play); }
+        else{
+          const d=new Date(play.playDate);
+          const label=isNaN(d)?play.playDate:days[d.getDay()]+', '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+          groups.push({date:play.playDate,label,plays:[play]});
+        }
+      });
+      return groups;
+    },
+    fmtMin(m){
+      if(!m) return '—';
+      const h=Math.floor(m/60),min=m%60;
+      return h?(min?`${h}h ${min}min`:`${h}h`):`${min}min`;
+    },
+    rankMedal(i){ return i===0?'gold':i===1?'silver':i===2?'bronze':''; },
   }
 }
 </script>
@@ -2138,45 +2269,31 @@ function app() {
         <h2>🎲 Gespielte Partien</h2>
         <span style="font-size:0.78rem;color:#aaa" x-text="bgPlays.length+' Partien'"></span>
       </div>
-      <div class="card-body" style="padding:0 0 4px">
-        <table class="games-table">
-          <thead>
-            <tr>
-              <th>Spiel</th>
-              <th style="text-align:right;width:70px">Dauer</th>
-              <th>Teilnehmer</th>
-              <th style="width:28px"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="row in playsGroupedByDate" :key="row.key">
-              <tr x-show="row.type==='header'">
-                <td colspan="4" style="background:#f8f6f3;padding:6px 10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="row.label"></td>
-              </tr>
-              <tr x-show="row.type==='play'">
-                <td>
-                  <div style="display:flex;align-items:center;gap:7px">
-                    <img x-show="row.play&&bgGames[row.play.gameUuid]?.thumbUrl" :src="bgGames[row.play?.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
-                    <span style="font-weight:600" x-text="bgGames[row.play?.gameUuid]?.name||'?'"></span>
-                  </div>
-                </td>
-                <td style="text-align:right;color:#888;white-space:nowrap" x-text="fmtMin(row.play?.durationMin)"></td>
-                <td>
-                  <div style="display:flex;flex-wrap:wrap;gap:4px">
-                    <template x-for="ps in (row.play?.playerScores||[])" :key="ps.uuid">
-                      <span :style="ps.winner ? 'font-weight:700;color:#1a1a1a' : 'color:#888;font-size:0.85rem'"
-                            x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
-                      </span>
-                    </template>
-                  </div>
-                </td>
-                <td>
-                  <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(row.play?.uuid)" title="Entfernen">✕</button>
-                </td>
-              </tr>
+      <div style="padding-bottom:4px">
+        <template x-for="group in playsGroupedByDate" :key="group.date">
+          <div>
+            <div style="background:#f8f6f3;padding:6px 16px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="group.label"></div>
+            <template x-for="play in group.plays" :key="play.uuid">
+              <div style="display:grid;grid-template-columns:1fr 70px 1fr 24px;align-items:center;gap:8px;padding:9px 16px;border-top:1px solid #f5f3f0">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <img x-show="bgGames[play.gameUuid]?.thumbUrl" :src="bgGames[play.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
+                  <span style="font-weight:600" x-text="bgGames[play.gameUuid]?.name||'?'"></span>
+                </div>
+                <div style="text-align:right;color:#888;font-size:0.85rem;white-space:nowrap" x-text="fmtMin(play.durationMin)"></div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px">
+                  <template x-for="ps in play.playerScores" :key="ps.uuid">
+                    <span :style="ps.winner?'font-weight:700;color:#1a1a1a':'color:#888;font-size:0.85rem'"
+                          x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
+                    </span>
+                  </template>
+                </div>
+                <div>
+                  <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(play.uuid)" title="Entfernen">✕</button>
+                </div>
+              </div>
             </template>
-          </tbody>
-        </table>
+          </div>
+        </template>
       </div>
     </div>
 
