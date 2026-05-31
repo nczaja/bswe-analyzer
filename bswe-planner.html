@@ -1568,7 +1568,9 @@ function app() {
     },
     gameSlots(game) {
       if(!game) return 1;
-      return game.durationCat==='kurz'?1:game.durationCat==='mittel'?2:4;
+      // Fallback: durationCat aus maxPlaytime ableiten wenn nicht gesetzt
+      const cat = game.durationCat || (game.maxPlaytime<=90?'kurz':game.maxPlaytime<=180?'mittel':'lang');
+      return cat==='kurz'?1:cat==='mittel'?2:4;
     },
     daySlotsFilled(dateStr) {
       return (this.schedule[dateStr]||[]).reduce((s,gid)=>{
@@ -2115,7 +2117,7 @@ function app() {
              @dragover.prevent @drop="scheduleDrop(day,'__end')">
           <!-- Belegte Kacheln -->
           <template x-for="gid in (schedule[day]||[])" :key="gid">
-            <div x-data="{g: games.find(x=>x.id===gid), sp: gameSlots(games.find(x=>x.id===gid))}"
+            <div x-data="{get g(){return games.find(x=>x.id===gid)}, get sp(){return gameSlots(games.find(x=>x.id===gid))}}"
                  x-show="games.find(x=>x.id===gid)"
                  :draggable="me==='admin'"
                  @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
