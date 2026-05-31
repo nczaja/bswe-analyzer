@@ -1405,16 +1405,28 @@ function app() {
           if(!ps) return;
           plays++;
           if(ps.winner) wins++;
-          const humanCount=play.playerScores.filter(s=>{
-            const pl=this.bgPlayers[s.uuid];
-            return !pl||!pl.isNpc;
-          }).length;
-          if(humanCount>0) expectedWins+=1/humanCount;
+          const totalCount=play.playerScores.length;
+          if(totalCount>0) expectedWins+=1/totalCount;
         });
         const winRate=plays>0?Math.round(wins/plays*100):0;
         const expectedRate=plays>0?Math.round(expectedWins/plays*100):0;
         return{personId:pid,name:person?.name||uuid.slice(0,8),plays,wins,winRate,expectedRate,delta:winRate-expectedRate};
       }).sort((a,b)=>b.wins-a.wins||b.winRate-a.winRate);
+    },
+    get playsGroupedByDate(){
+      const days=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+      const sorted=[...this.bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
+      const groups=[];
+      sorted.forEach(play=>{
+        const last=groups[groups.length-1];
+        if(last&&last.date===play.playDate){ last.plays.push(play); }
+        else{
+          const d=new Date(play.playDate);
+          const label=isNaN(d)?play.playDate:days[d.getDay()]+', '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+          groups.push({date:play.playDate,label,plays:[play]});
+        }
+      });
+      return groups;
     },
     get statsGames(){
       const map={};
@@ -1605,60 +1617,49 @@ function app() {
     </div>
 
     <!-- Games breakdown -->
-    <div class="card" x-show="statsGames.length">
+    <div class="card" x-show="bgPlays.length">
       <div class="card-header">
-        <h2>🎲 Gespielte Spiele</h2>
+        <h2>🎲 Gespielte Partien</h2>
+        <span style="font-size:0.78rem;color:#aaa" x-text="bgPlays.length+' Partien'"></span>
       </div>
       <div class="card-body" style="padding:0 0 4px">
         <table class="games-table">
           <thead>
             <tr>
               <th>Spiel</th>
-              <th style="text-align:right;width:70px">Partien</th>
-              <th style="text-align:right;width:90px">Ø Dauer</th>
-              <th style="text-align:right;width:90px">Gesamt</th>
+              <th style="text-align:right;width:70px">Dauer</th>
+              <th>Teilnehmer</th>
+              <th style="width:28px"></th>
             </tr>
           </thead>
           <tbody>
-            <template x-for="g in statsGames" :key="g.uuid">
+            <template x-for="group in playsGroupedByDate" :key="group.date">
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center">
-                    <img x-show="g.thumbUrl" :src="g.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
-                    <span style="font-weight:600" x-text="g.name"></span>
-                  </div>
-                </td>
-                <td style="text-align:right;font-weight:700" x-text="g.plays"></td>
-                <td style="text-align:right;color:#888" x-text="fmtMin(g.avgMin)"></td>
-                <td style="text-align:right;color:#888" x-text="fmtMin(g.totalMin)"></td>
+                <td colspan="4" style="background:#f8f6f3;padding:6px 10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="group.label"></td>
               </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Plays log (admin) -->
-    <div class="card" x-show="me==='admin' && bgPlays.length" style="margin-top:16px">
-      <div class="card-header">
-        <h2>📋 Import-Log</h2>
-        <span style="font-size:0.75rem;color:#bbb" x-text="bgPlays.length+' Einträge'"></span>
-      </div>
-      <div class="card-body" style="padding:0 0 4px;max-height:260px;overflow-y:auto">
-        <table class="games-table">
-          <thead><tr>
-            <th>Datum</th><th>Spiel</th><th style="text-align:right">Dauer</th><th style="width:28px"></th>
-          </tr></thead>
-          <tbody>
-            <template x-for="play in [...bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate))" :key="play.uuid">
-              <tr>
-                <td style="color:#aaa;font-size:0.8rem" x-text="play.playDate"></td>
-                <td x-text="bgGames[play.gameUuid]?.name||'?'"></td>
-                <td style="text-align:right;color:#aaa;font-size:0.8rem" x-text="fmtMin(play.durationMin)"></td>
-                <td>
-                  <button style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(play.uuid)" title="Entfernen">✕</button>
-                </td>
-              </tr>
+              <template x-for="play in group.plays" :key="play.uuid">
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:7px">
+                      <img x-show="bgGames[play.gameUuid]?.thumbUrl" :src="bgGames[play.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
+                      <span style="font-weight:600" x-text="bgGames[play.gameUuid]?.name||'?'"></span>
+                    </div>
+                  </td>
+                  <td style="text-align:right;color:#888;white-space:nowrap" x-text="fmtMin(play.durationMin)"></td>
+                  <td>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px">
+                      <template x-for="ps in play.playerScores" :key="ps.uuid">
+                        <span :style="ps.winner ? 'font-weight:700;color:#1a1a1a' : 'color:#888;font-size:0.85rem'"
+                              x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
+                        </span>
+                      </template>
+                    </div>
+                  </td>
+                  <td>
+                    <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(play.uuid)" title="Entfernen">✕</button>
+                  </td>
+                </tr>
+              </template>
             </template>
           </tbody>
         </table>
