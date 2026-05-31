@@ -1416,17 +1416,18 @@ function app() {
     get playsGroupedByDate(){
       const days=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
       const sorted=[...this.bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
-      const groups=[];
+      const rows=[];
+      let lastDate=null;
       sorted.forEach(play=>{
-        const last=groups[groups.length-1];
-        if(last&&last.date===play.playDate){ last.plays.push(play); }
-        else{
+        if(play.playDate!==lastDate){
+          lastDate=play.playDate;
           const d=new Date(play.playDate);
           const label=isNaN(d)?play.playDate:days[d.getDay()]+', '+d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
-          groups.push({date:play.playDate,label,plays:[play]});
+          rows.push({type:'header',key:'h_'+play.playDate,label});
         }
+        rows.push({type:'play',key:'p_'+play.uuid,play});
       });
-      return groups;
+      return rows;
     },
     get statsGames(){
       const map={};
@@ -1633,33 +1634,31 @@ function app() {
             </tr>
           </thead>
           <tbody>
-            <template x-for="group in playsGroupedByDate" :key="group.date">
-              <tr>
-                <td colspan="4" style="background:#f8f6f3;padding:6px 10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="group.label"></td>
+            <template x-for="row in playsGroupedByDate" :key="row.key">
+              <tr x-show="row.type==='header'">
+                <td colspan="4" style="background:#f8f6f3;padding:6px 10px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999" x-text="row.label"></td>
               </tr>
-              <template x-for="play in group.plays" :key="play.uuid">
-                <tr>
-                  <td>
-                    <div style="display:flex;align-items:center;gap:7px">
-                      <img x-show="bgGames[play.gameUuid]?.thumbUrl" :src="bgGames[play.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
-                      <span style="font-weight:600" x-text="bgGames[play.gameUuid]?.name||'?'"></span>
-                    </div>
-                  </td>
-                  <td style="text-align:right;color:#888;white-space:nowrap" x-text="fmtMin(play.durationMin)"></td>
-                  <td>
-                    <div style="display:flex;flex-wrap:wrap;gap:4px">
-                      <template x-for="ps in play.playerScores" :key="ps.uuid">
-                        <span :style="ps.winner ? 'font-weight:700;color:#1a1a1a' : 'color:#888;font-size:0.85rem'"
-                              x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
-                        </span>
-                      </template>
-                    </div>
-                  </td>
-                  <td>
-                    <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(play.uuid)" title="Entfernen">✕</button>
-                  </td>
-                </tr>
-              </template>
+              <tr x-show="row.type==='play'">
+                <td>
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <img x-show="row.play&&bgGames[row.play.gameUuid]?.thumbUrl" :src="bgGames[row.play?.gameUuid]?.thumbUrl" class="game-thumb" @error="$el.style.display='none'">
+                    <span style="font-weight:600" x-text="bgGames[row.play?.gameUuid]?.name||'?'"></span>
+                  </div>
+                </td>
+                <td style="text-align:right;color:#888;white-space:nowrap" x-text="fmtMin(row.play?.durationMin)"></td>
+                <td>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px">
+                    <template x-for="ps in (row.play?.playerScores||[])" :key="ps.uuid">
+                      <span :style="ps.winner ? 'font-weight:700;color:#1a1a1a' : 'color:#888;font-size:0.85rem'"
+                            x-text="(ps.winner?'👑 ':'')+( bgPlayerMap[ps.uuid] ? (allPeople.find(p=>p.id===bgPlayerMap[ps.uuid])?.name||bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) : (bgPlayers[ps.uuid]?.name||ps.uuid.slice(0,6)) )">
+                      </span>
+                    </template>
+                  </div>
+                </td>
+                <td>
+                  <button x-show="me==='admin'" style="background:none;border:none;cursor:pointer;color:#ddd;font-size:0.9rem" @click="removePlay(row.play?.uuid)" title="Entfernen">✕</button>
+                </td>
+              </tr>
             </template>
           </tbody>
         </table>
