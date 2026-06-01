@@ -627,9 +627,10 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           disableMobile: true,
           plugins: [new rangePlugin({ input: $el.querySelector('#fp-to') })],
           onChange(dates) {
-            if (dates[0]) $data.newDate.from = dates[0].toISOString().split('T')[0];
+            const localISO = d => { const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
+            if (dates[0]) $data.newDate.from = localISO(dates[0]);
             else $data.newDate.from = '';
-            if (dates[1]) $data.newDate.to = dates[1].toISOString().split('T')[0];
+            if (dates[1]) $data.newDate.to = localISO(dates[1]);
             else $data.newDate.to = '';
           }
         })
@@ -1725,11 +1726,14 @@ function app() {
       const v=this.venues.find(v=>v.id===id);
       if(v){
         // Pre-populate booking from venue data; user can edit afterwards
-        this.booking.address = v.location || '';
-        this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : '');
-        this.booking.keyCode = '';
-        this.booking.notes = v.notes || '';
-        // checkin/checkout ergeben sich aus finalDate — kein separates Speichern nötig
+        // Setter via vollständige Objektzuweisung triggern (direktes Property-Mutieren umgeht Alpine-Reaktivität)
+        this.booking = {
+          ...this.booking,
+          address:  v.location || '',
+          host:     v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : ''),
+          keyCode:  '',
+          notes:    v.notes || '',
+        };
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
@@ -2989,6 +2993,8 @@ function app() {
                        :draggable="me==='admin'"
                        @dragstart="me==='admin' && scheduleDragStart(day, session, $event)"
                        @dragend="scheduleDragEnd()"
+                       @dragover.prevent="me==='admin' && scheduleDragSession && scheduleDragSession.id!==session.id && scheduleDragOverSlot(day, session.startSlot, $event)"
+                       @drop.stop="me==='admin' && scheduleDrop(day, session.startSlot)"
                        :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';grid-row:1;position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
                          + (scheduleDragSession&&scheduleDragSession.id===session.id ? 'opacity:0.4;' : '')
                          + (gameHasPlayerMismatch(day,session) ? 'box-shadow:0 0 0 3px #e53935;' : '')
@@ -3006,7 +3012,7 @@ function app() {
                 <!-- Freie Drop-Slots für diesen Track -->
                 <template x-for="si in Array.from({length:9},(_,i)=>i).filter(i=>!occupiedSlotsOnTrack(track).has(i))" :key="'e'+si">
                   <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
-                       @dragleave="scheduleDragOver=null"
+                       @dragleave.self="scheduleDragOver=null"
                        @drop.stop="me==='admin' && scheduleDrop(day, si)"
                        :style="'grid-column:'+(si+1)+';grid-row:1;border-radius:8px;transition:background 0.1s,border 0.1s;'
                          + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
@@ -3034,7 +3040,7 @@ function app() {
             <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;height:44px">
               <template x-for="si in Array.from({length:9},(_,i)=>i)" :key="'new'+si">
                 <div @dragover="scheduleDragOverSlot(day, si, $event)"
-                     @dragleave="scheduleDragOver=null"
+                     @dragleave.self="scheduleDragOver=null"
                      @drop.stop="scheduleDrop(day, si)"
                      :style="'grid-column:'+(si+1)+';border-radius:6px;background:'+(scheduleDragOver===day+'|'+si?'#e8f0fe':'#f0f4ff')+';transition:background 0.1s'">
                 </div>
