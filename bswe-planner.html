@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/rangePlugin.js"></script>
@@ -689,11 +691,31 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         </template>
 
         <!-- Map snippet -->
-        <template x-if="venueMapUrl(v)">
-          <div style="margin:10px 0 4px;border-radius:8px;overflow:hidden;height:150px;border:1px solid #e8e6e0;position:relative">
-            <iframe :src="venueMapUrl(v)" style="border:0;width:100%;height:150px;display:block" loading="lazy" scrolling="no" referrerpolicy="no-referrer"></iframe>
-          </div>
-        </template>
+        <div x-show="v.location" style="margin:10px 0 4px;border-radius:8px;overflow:hidden;height:150px;border:1px solid #e8e6e0;position:relative;background:#f5f5f3"
+          x-effect="
+            const loc = v.location?.trim();
+            if (!loc) return;
+            if (!Object.prototype.hasOwnProperty.call(coordsCache, loc)) { geocodeCity(loc); return; }
+            const c = coordsCache[loc];
+            if (!c) return;
+            const el = $el.querySelector('.venue-leaflet');
+            if (!el._lmap) {
+              const map = L.map(el, { zoomControl: false, attributionControl: false }).setView([c.lat, c.lng], 12);
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+              const icon = L.divIcon({
+                className: '',
+                html: '<div style=\'width:12px;height:12px;background:#1a1a1a;border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.45)\'></div>',
+                iconSize: [12,12], iconAnchor: [6,6]
+              });
+              L.marker([c.lat, c.lng], { icon }).addTo(map);
+              el._lmap = map;
+              setTimeout(() => map.invalidateSize(), 50);
+            } else {
+              el._lmap.setView([c.lat, c.lng], 12);
+            }
+          ">
+          <div class="venue-leaflet" style="width:100%;height:100%"></div>
+        </div>
 
         <div x-show="v.rooms && v.rooms.length" style="margin-top:8px">
           <div class="section-label" style="margin-bottom:5px">Zimmer</div>
@@ -816,15 +838,40 @@ h2 { font-size: 1.02rem; font-weight: 700; }
             </div>
           </div>
           <div style="width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
-            <div style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid #e0ddd8;background:#f5f5f3">
-              <template x-if="bookingMapUrl()">
-                <iframe :src="bookingMapUrl()" width="100%" height="100%" style="border:none;display:block" scrolling="no"></iframe>
-              </template>
-              <template x-if="!bookingMapUrl()">
-                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:0.78rem;text-align:center;padding:12px">
-                  <span x-text="booking.address ? '📍 Karte lädt…' : '📍 Adresse eintragen'"></span>
-                </div>
-              </template>
+            <div style="aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:1px solid #e0ddd8;background:#f5f5f3;position:relative"
+              x-effect="
+                const addr = booking?.address?.trim();
+                const c = addr ? coordsCache[addr] : null;
+                const el = $el.querySelector('#booking-leaflet');
+                if (c) {
+                  if (!el._lmap) {
+                    const map = L.map(el, { zoomControl: false, attributionControl: false }).setView([c.lat, c.lng], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    L.control.zoom({ position: 'bottomright' }).addTo(map);
+                    const icon = L.divIcon({
+                      className: '',
+                      html: '<div style=\'width:14px;height:14px;background:#1a1a1a;border:2.5px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.45)\'></div>',
+                      iconSize: [14, 14],
+                      iconAnchor: [7, 7]
+                    });
+                    L.marker([c.lat, c.lng], { icon }).addTo(map);
+                    el._lmap = map;
+                    el._lmarker = L.marker([c.lat, c.lng], { icon });
+                    setTimeout(() => map.invalidateSize(), 50);
+                  } else {
+                    el._lmap.setView([c.lat, c.lng], 14);
+                  }
+                  el.style.display = '';
+                  $el.querySelector('#booking-map-empty').style.display = 'none';
+                } else {
+                  el.style.display = 'none';
+                  $el.querySelector('#booking-map-empty').style.display = '';
+                }
+              ">
+              <div id="booking-leaflet" style="width:100%;height:100%"></div>
+              <div id="booking-map-empty" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:0.78rem;text-align:center;padding:12px;position:absolute;inset:0">
+                <span x-text="booking.address ? '📍 Karte lädt…' : '📍 Adresse eintragen'"></span>
+              </div>
             </div>
             <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center"
               :disabled="!booking.address"
