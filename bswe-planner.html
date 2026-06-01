@@ -425,7 +425,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </div>
     <div class="card-body" style="padding:14px 20px">
       <template x-for="p in allPeople" :key="p.id">
-        <span class="participant-toggle" :class="isParticipant(p.id)?'active':''" @click="toggleParticipant(p.id)">
+        <span class="participant-toggle" :class="isParticipant(p.id)?'active':''" :style="(me!=='admin' && p.id!==me)?'opacity:0.5;cursor:not-allowed':''" @click="(me==='admin' || p.id===me) && toggleParticipant(p.id)">
           <span x-text="p.name"></span>
           <span x-show="p.hometown" style="font-size:0.65rem;opacity:0.7" x-text="' · '+p.hometown"></span>
         </span>
@@ -557,7 +557,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                   <span x-show="finalDateId===d.id" style="font-size:0.72rem;font-weight:700;color:#0f5d54;background:#dff0e7;padding:2px 7px;border-radius:99px;display:inline-block">📌 Fixiert</span>
                   <!-- Admin: set/unset button -->
                   <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#eef6f0;color:#0f5d54;border:1px solid #10746A" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
-                  <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
+                  <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="if(!bookedVenue || confirm('Achtung: Es ist bereits eine Unterkunft gebucht. Fixierung aufheben setzt auch die Buchung zurück. Fortfahren?')){finalDateId='';finalDate='';venues=venues.map(v=>({...v,winner:false}))}">Fixierung aufheben</button>
                 </div>
               </td>
             </tr>
@@ -746,7 +746,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='meh'?'active-meh':''" @click="setVenueVote(v.id,me,'meh')">🤷 Egal</button>
         <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='down'?'active-down':''" @click="setVenueVote(v.id,me,'down')">👎 Dagegen</button>
         <div style="flex:1"></div>
-        <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:700" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
+        <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:700" :disabled="!finalDateId" :title="!finalDateId?'Erst einen Termin fixieren':''" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
         <button x-show="v.winner" class="btn btn-sm btn-ghost" @click="unbookVenue(v.id)">Buchung aufheben</button>
         <button x-show="me==='admin' && !v.permanent" class="btn btn-sm" style="background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="venues=venues.filter(x=>x.id!==v.id)">🗑</button>
         <div class="vote-avatars">
@@ -1517,6 +1517,7 @@ function app() {
     },
     venueVoteEmoji(vid,pid){ const v=this.getVenueVote(vid,pid); return v==='up'?'👍':v==='down'?'👎':v==='meh'?'🤷':'—'; },
     bookVenue(id){
+      if(!this.finalDateId){ alert('Bitte zuerst einen Termin fixieren.'); return; }
       this.venues=this.venues.map(v=>({...v,winner:v.id===id}));
       const v=this.venues.find(v=>v.id===id);
       if(v){
