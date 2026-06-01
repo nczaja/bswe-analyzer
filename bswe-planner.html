@@ -7,6 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/rangePlugin.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -560,8 +564,26 @@ h2 { font-size: 1.02rem; font-weight: 700; }
       </table>
     </div>
     <div class="add-form">
-      <div><label>Von (Do)</label><input type="date" x-model="newDate.from" @change="if(newDate.from && (!newDate.to || newDate.to < newDate.from)) newDate.to = newDate.from"></div>
-      <div><label>Bis (So)</label><input type="date" x-model="newDate.to" :min="newDate.from || null"></div>
+      <div x-init="
+        flatpickr($el.querySelector('#fp-from'), {
+          locale: 'de',
+          dateFormat: 'Y-m-d',
+          altInput: true,
+          altFormat: 'd.m.Y',
+          minDate: 'today',
+          disableMobile: true,
+          plugins: [new rangePlugin({ input: $el.querySelector('#fp-to') })],
+          onChange(dates) {
+            if (dates[0]) $data.newDate.from = dates[0].toISOString().split('T')[0];
+            else $data.newDate.from = '';
+            if (dates[1]) $data.newDate.to = dates[1].toISOString().split('T')[0];
+            else $data.newDate.to = '';
+          }
+        })
+      " style="display:flex;gap:10px">
+        <div><label>Von (Do)</label><input id="fp-from" type="text" placeholder="TT.MM.JJJJ" style="width:130px;cursor:pointer"></div>
+        <div><label>Bis (So)</label><input id="fp-to" type="text" placeholder="TT.MM.JJJJ" style="width:130px;cursor:pointer"></div>
+      </div>
       <div><label>Hinweis</label><input type="text" x-model="newDate.sub" placeholder="z.B. Ostern" style="width:120px"></div>
       <button class="btn btn-primary" @click="addDate()">+ Vorschlagen</button>
     </div>
@@ -748,25 +770,46 @@ h2 { font-size: 1.02rem; font-weight: 700; }
             <div class="section-label">Wer kommt wann?</div>
             <div style="margin-top:8px">
               <template x-for="p in eventParticipants" :key="p.id">
-                <div class="arrival-row">
+                <div class="arrival-row" x-init="
+                  const editable = (p.id === me || me === 'admin');
+                  const minD = eventDateRange ? eventDateRange.from : null;
+                  const maxD = eventDateRange ? eventDateRange.to   : null;
+                  const inputs = $el.querySelectorAll('input.arrival-dt');
+                  const types  = ['arrive','depart'];
+                  inputs.forEach((inp, i) => {
+                    const fp = flatpickr(inp, {
+                      locale: 'de',
+                      enableTime: true,
+                      time_24hr: true,
+                      dateFormat: 'Y-m-d H:i',
+                      altInput: true,
+                      altFormat: 'D d.m. H:i',
+                      defaultDate: arrivalGet(p.id, types[i]) || null,
+                      minDate: minD || null,
+                      maxDate: maxD || null,
+                      disableMobile: true,
+                      onChange(dates) {
+                        if (dates[0]) {
+                          const iso = dates[0].getFullYear()+'-'+
+                            String(dates[0].getMonth()+1).padStart(2,'0')+'-'+
+                            String(dates[0].getDate()).padStart(2,'0')+'T'+
+                            String(dates[0].getHours()).padStart(2,'0')+':'+
+                            String(dates[0].getMinutes()).padStart(2,'0');
+                          arrivalSet(p.id, types[i], iso);
+                        }
+                      }
+                    });
+                    if (!editable) fp.set('clickOpens', false);
+                  });
+                ">
                   <span class="arrival-name" x-text="p.name"></span>
                   <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
                     <span class="arrival-lbl">Ankunft</span>
-                    <input type="datetime-local" class="arrival-dt"
-                      :disabled="p.id!==me && me!=='admin'"
-                      :value="arrivalGet(p.id,'arrive')"
-                      @change="arrivalSet(p.id,'arrive',$event.target.value)"
-                      :min="eventDateRange ? eventDateRange.from+'T00:00' : ''"
-                      :max="eventDateRange ? eventDateRange.to+'T23:59' : ''">
+                    <input type="text" class="arrival-dt" :style="(p.id!==me && me!=='admin') ? 'pointer-events:none;opacity:0.5' : 'cursor:pointer'">
                   </div>
                   <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
                     <span class="arrival-lbl">Abreise</span>
-                    <input type="datetime-local" class="arrival-dt"
-                      :disabled="p.id!==me && me!=='admin'"
-                      :value="arrivalGet(p.id,'depart')"
-                      @change="arrivalSet(p.id,'depart',$event.target.value)"
-                      :min="eventDateRange ? eventDateRange.from+'T00:00' : ''"
-                      :max="eventDateRange ? eventDateRange.to+'T23:59' : ''">
+                    <input type="text" class="arrival-dt" :style="(p.id!==me && me!=='admin') ? 'pointer-events:none;opacity:0.5' : 'cursor:pointer'">
                   </div>
                 </div>
               </template>
