@@ -607,6 +607,8 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                   <!-- Admin: set/unset button -->
                   <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#eef6f0;color:#0f5d54;border:1px solid #10746A" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
                   <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="if(!bookedVenue || confirm('Achtung: Es ist bereits eine Unterkunft gebucht. Fixierung aufheben setzt auch die Buchung zurück. Fortfahren?')){finalDateId='';finalDate='';venues=venues.map(v=>({...v,winner:false}))}">Fixierung aufheben</button>
+                  <!-- Admin: delete date -->
+                  <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78;margin-left:4px" @click="if(confirm('Termin «'+d.label+'» wirklich löschen?')){dates=dates.filter(x=>x.id!==d.id)}">🗑</button>
                 </div>
               </td>
             </tr>
