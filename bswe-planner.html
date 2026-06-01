@@ -431,7 +431,10 @@ h2 { font-size: 1.02rem; font-weight: 700; }
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               <span class="event-list-name" style="font-weight:700;font-size:0.95rem" x-text="ev.name"></span>
             </div>
-            <div class="event-list-meta" style="font-size:0.78rem;color:#888" x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></div>
+            <div class="event-list-meta" style="font-size:0.78rem;color:#888">
+              <span x-show="ev.finalDate" x-text="'📅 '+ev.finalDate" style="margin-right:8px"></span>
+              <span x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></span>
+            </div>
           </div>
           <template x-if="ev.id===selectedEventId">
             <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -833,8 +836,28 @@ h2 { font-size: 1.02rem; font-weight: 700; }
             <div class="lbl" style="color:#8a6000">🔑 Schlüsselcode</div>
             <input type="text" x-model="booking.keyCode" style="width:100%;border:none;background:transparent;font-family:'SF Mono','Fira Code',monospace;font-size:1.5rem;letter-spacing:0.12em;font-weight:700;padding:2px 0" placeholder="Code eintragen">
           </div>
-          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📅 Anreise</div><input type="text" x-model="booking.checkin" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0" placeholder="Do 26.02., ab 16:00"></div>
-          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📅 Abreise</div><input type="text" x-model="booking.checkout" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0" placeholder="So 01.03., bis 11:00"></div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px">
+            <div class="lbl">📅 Anreise</div>
+            <div x-init="flatpickr($el.querySelector('input'), {
+              locale: 'de', enableTime: true, time_24hr: true,
+              dateFormat: 'Y-m-d H:i', altInput: true, altFormat: 'D d.m.Y, H:i \\Uhr',
+              defaultDate: booking.checkin || null, disableMobile: true,
+              onChange(dates) { if(dates[0]) { $data.booking={...$data.booking, checkin: dates[0].getFullYear()+'-'+String(dates[0].getMonth()+1).padStart(2,'0')+'-'+String(dates[0].getDate()).padStart(2,'0')+' '+String(dates[0].getHours()).padStart(2,'0')+':'+String(dates[0].getMinutes()).padStart(2,'0')}; } else { $data.booking={...$data.booking,checkin:''}; } }
+            })">
+              <input type="text" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0;cursor:pointer" placeholder="Datum wählen…" :class="me!=='admin'?'pointer-events-none':''">
+            </div>
+          </div>
+          <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px">
+            <div class="lbl">📅 Abreise</div>
+            <div x-init="flatpickr($el.querySelector('input'), {
+              locale: 'de', enableTime: true, time_24hr: true,
+              dateFormat: 'Y-m-d H:i', altInput: true, altFormat: 'D d.m.Y, H:i \\Uhr',
+              defaultDate: booking.checkout || null, disableMobile: true,
+              onChange(dates) { if(dates[0]) { $data.booking={...$data.booking, checkout: dates[0].getFullYear()+'-'+String(dates[0].getMonth()+1).padStart(2,'0')+'-'+String(dates[0].getDate()).padStart(2,'0')+' '+String(dates[0].getHours()).padStart(2,'0')+':'+String(dates[0].getMinutes()).padStart(2,'0')}; } else { $data.booking={...$data.booking,checkout:''}; } }
+            })">
+              <input type="text" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0;cursor:pointer" placeholder="Datum wählen…" :class="me!=='admin'?'pointer-events-none':''">
+            </div>
+          </div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📍 Adresse</div><input type="text" x-model="booking.address" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Straße, PLZ Ort"></div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">👤 Vermieter</div><input type="text" x-model="booking.host" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Name / Plattform"></div>
         </div>
