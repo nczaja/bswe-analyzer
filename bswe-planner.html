@@ -2100,7 +2100,7 @@ function app() {
     scheduleDragOver: null, // 'day|slotIndex'
 
     scheduleDragStart(day, session, ev) {
-      this.scheduleDragSession = session;
+      this.scheduleDragSession = JSON.parse(JSON.stringify(session));
       this.scheduleDragDay = day;
       ev.dataTransfer.effectAllowed = 'move';
     },
