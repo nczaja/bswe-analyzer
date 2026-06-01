@@ -1,0 +1,177 @@
+/* ════════════════════════════════════════════════════════════════
+   SPIELKARTON THEME — Vintage-Boardgame-Box-Look für BSWE Planner
+   ----------------------------------------------------------------
+   Eigenständige Override-Schicht. In bswe-planner.html via
+     <link rel="stylesheet" href="theme.css">
+   NACH dem internen <style>-Block eingebunden (gewinnt durch Reihenfolge).
+   Nutzt nur bestehende Klassennamen — neue Elemente mit diesen Klassen
+   erben den Look automatisch.
+   ════════════════════════════════════════════════════════════════ */
+
+:root{
+  --sk-paper:#F1E4C8; --sk-paper-d:#E2D0AB; --sk-card:#FBF4E3;
+  --sk-ink:#211F18; --sk-ink-soft:#6B6450;
+  --sk-teal:#10746A; --sk-teal-tint:#dff0e7; --sk-teal-ink:#0f5d54;
+  --sk-mustard:#E0A019; --sk-mustard-tint:#fff6df; --sk-mustard-ink:#6b5208;
+  --sk-verm:#CF4729; --sk-verm-tint:#fbe3dd; --sk-verm-ink:#9c2f17;
+  --sk-navy:#234B73; --sk-navy-tint:#e2ebf5;
+}
+body{ font-family:'Work Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--sk-paper); background-image:radial-gradient(var(--sk-paper-d) 1.1px, transparent 1.2px); background-size:13px 13px; color:var(--sk-ink); }
+h2, .venue-title, .active-event-card h3, .archive-banner h3, .stat-num, .landing-title{ font-family:'Anton',sans-serif; font-weight:400; letter-spacing:.02em; }
+h2{ font-size:1.18rem; text-transform:uppercase; }
+
+/* ── Landing / Gate ── */
+.landing{ background:var(--sk-paper); background-image:radial-gradient(var(--sk-paper-d) 1.1px, transparent 1.2px); background-size:13px 13px; }
+.landing-title{ font-size:2.1rem; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; line-height:1; }
+.landing-logo{ font-size:2.6rem; }
+.landing-sub{ color:var(--sk-ink-soft); margin-top:10px; }
+.landing-btn{ border:2.5px solid var(--sk-ink); background:var(--sk-card); color:var(--sk-ink); border-radius:5px; box-shadow:3px 3px 0 var(--sk-ink); font-weight:700; }
+.landing-btn:hover{ background:var(--sk-mustard); color:var(--sk-ink); }
+.landing-yes{ background:var(--sk-verm); border:2.5px solid var(--sk-ink); color:var(--sk-card); border-radius:5px; box-shadow:3px 3px 0 var(--sk-ink); }
+.landing-yes:hover{ background:var(--sk-verm); }
+.landing-other{ background:var(--sk-card); border:2.5px solid var(--sk-ink); color:var(--sk-ink); border-radius:5px; }
+.landing-other:hover{ border-color:var(--sk-ink); color:var(--sk-ink); background:var(--sk-paper-d); }
+.landing-new-toggle{ border:2px dashed var(--sk-ink); color:var(--sk-ink-soft); border-radius:6px; }
+.landing-new-toggle:hover{ border-color:var(--sk-ink); color:var(--sk-ink); }
+.landing-new-form{ background:var(--sk-card); border:2.5px solid var(--sk-ink); border-radius:6px; box-shadow:4px 4px 0 var(--sk-ink); }
+.landing-new-form input{ border:2px solid var(--sk-ink); border-radius:5px; }
+.landing-new-submit{ background:var(--sk-verm); border-radius:5px; font-weight:800; }
+.identity-toast{ color:var(--sk-teal); font-weight:700; }
+
+/* ── App-Chrome ── */
+.app-header{ background:var(--sk-ink); color:var(--sk-card); border-bottom:4px solid var(--sk-mustard); padding:18px 26px; align-items:center; flex-wrap:wrap; }
+.app-header h1{ font-family:'Anton',sans-serif; font-weight:400; font-size:1.55rem; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap; flex-shrink:0; }
+.app-header span{ color:var(--sk-mustard); opacity:1; font-weight:700; font-size:.7rem; letter-spacing:.28em; text-transform:uppercase; }
+.identity-bar{ background:var(--sk-card); border-bottom:3px solid var(--sk-ink); }
+.identity-bar.admin-mode{ background:var(--sk-mustard-tint); border-bottom-color:var(--sk-ink); }
+.identity-bar label{ color:var(--sk-ink-soft); font-weight:600; }
+.identity-bar .identity-name{ font-weight:700; color:var(--sk-ink); }
+.admin-badge{ background:var(--sk-mustard); color:var(--sk-ink); border:2px solid var(--sk-ink); border-radius:99px; font-weight:800; }
+.switch-btn{ border:2px solid var(--sk-ink); color:var(--sk-ink); border-radius:5px; font-weight:700; background:var(--sk-card); }
+.switch-btn:hover{ background:var(--sk-ink); color:var(--sk-card); }
+.tabs{ background:var(--sk-paper); border-bottom:3px solid var(--sk-ink); padding:14px 16px; gap:7px; flex-wrap:wrap; overflow:visible; }
+.tab{ font-weight:700; font-size:.8rem; text-transform:uppercase; letter-spacing:.03em; padding:8px 13px; border:2.5px solid var(--sk-ink); border-radius:4px; background:var(--sk-card); color:var(--sk-ink); }
+.tab:hover:not(.tab-disabled){ color:var(--sk-ink); background:var(--sk-paper-d); }
+.tab.active{ background:var(--sk-mustard); color:var(--sk-ink); border-color:var(--sk-ink); box-shadow:3px 3px 0 var(--sk-ink); }
+.tab-disabled{ opacity:.4; }
+
+/* ── Cards ── */
+.card{ background:var(--sk-card); border:3px solid var(--sk-ink); border-radius:6px; box-shadow:5px 5px 0 var(--sk-ink); }
+.card-header{ border-bottom:3px solid var(--sk-ink); background:var(--sk-paper); }
+.section-label{ color:var(--sk-ink-soft); font-weight:800; }
+
+/* ── Vote-Tabelle ── */
+.vote-grid th{ color:var(--sk-ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.vote-grid td{ border-top:2px solid var(--sk-paper-d); }
+.vote-grid tr:hover td{ background:var(--sk-paper); }
+.vote-btn{ border-radius:7px; border:2px solid var(--sk-ink); background:var(--sk-card); width:30px; height:30px; font-weight:800; }
+.vote-btn.yes{ background:var(--sk-teal-tint); } .vote-btn.maybe{ background:var(--sk-mustard-tint); } .vote-btn.no{ background:var(--sk-verm-tint); }
+.vote-btn.active-yes{ background:var(--sk-teal); color:var(--sk-card); }
+.vote-btn.active-maybe{ background:var(--sk-mustard); color:var(--sk-ink); }
+.vote-btn.active-no{ background:var(--sk-verm); color:var(--sk-card); }
+.date-range{ font-weight:700; font-size:.95rem; } .date-sub{ color:var(--sk-ink-soft); }
+.vorbehalt-tag{ color:var(--sk-mustard-ink); background:var(--sk-mustard-tint); border:1.5px solid var(--sk-mustard); font-weight:700; }
+.vs-pill{ font-weight:800; border:2px solid var(--sk-ink); }
+.vs-yes{ background:var(--sk-teal); color:var(--sk-card); } .vs-maybe{ background:var(--sk-mustard); color:var(--sk-ink); } .vs-no{ background:var(--sk-verm); color:var(--sk-card); }
+
+/* ── Badges ── */
+.badge{ font-weight:800; border:2px solid var(--sk-ink); }
+.badge-green{ background:var(--sk-teal); color:var(--sk-card); } .badge-yellow{ background:var(--sk-mustard); color:var(--sk-ink); }
+.badge-blue{ background:var(--sk-navy); color:var(--sk-card); } .badge-red{ background:var(--sk-verm); color:var(--sk-card); }
+
+/* ── Buttons & Inputs ── */
+.add-form{ background:var(--sk-paper); border-top:3px solid var(--sk-ink); }
+.add-form label, .add-person-form label{ color:var(--sk-ink-soft); font-weight:700; }
+.btn{ border-radius:5px; font-weight:700; }
+.btn-primary{ background:var(--sk-verm); color:var(--sk-card); border:2.5px solid var(--sk-ink); box-shadow:3px 3px 0 var(--sk-ink); text-transform:uppercase; letter-spacing:.02em; }
+.btn-primary:disabled{ background:var(--sk-paper-d); color:var(--sk-ink-soft); border-color:var(--sk-ink-soft); box-shadow:none; }
+.btn-ghost{ background:var(--sk-card); color:var(--sk-ink); border:2px solid var(--sk-ink); }
+.btn-ghost:hover{ background:var(--sk-paper-d); color:var(--sk-ink); border-color:var(--sk-ink); }
+.btn-sm{ box-shadow:2px 2px 0 var(--sk-ink); }
+input[type=text], input[type=url], input[type=date], input[type=number], textarea, select.inp, .input{ border:2.5px solid var(--sk-ink); border-radius:5px; background:var(--sk-card); color:var(--sk-ink); font-family:'Work Sans',sans-serif; }
+input:focus, textarea:focus, select.inp:focus, .input:focus{ border-color:var(--sk-verm); outline:none; }
+.identity-bar input[type=text]{ border:2px solid var(--sk-ink); }
+
+/* ── Venue-Karten ── */
+.venue-card{ border:3px solid var(--sk-ink); border-radius:6px; box-shadow:5px 5px 0 var(--sk-ink); background:var(--sk-card); }
+.venue-card.winner{ box-shadow:5px 5px 0 var(--sk-teal), 0 0 0 3px var(--sk-teal); }
+.venue-photos{ background:var(--sk-paper); border-bottom:3px solid var(--sk-ink); }
+.venue-photo, .venue-photo-placeholder{ border:2px solid var(--sk-ink); border-radius:6px; }
+.venue-photo-placeholder{ background:var(--sk-paper-d); }
+.venue-title{ font-size:1.4rem; } .venue-link{ color:var(--sk-navy); font-weight:600; }
+.pill{ background:var(--sk-paper); color:var(--sk-ink); border:2px solid var(--sk-ink); border-radius:99px; font-weight:700; }
+.pill.good{ background:var(--sk-teal-tint); color:var(--sk-teal-ink); border-color:var(--sk-teal-ink); }
+.pill.bad{ background:var(--sk-verm-tint); color:var(--sk-verm-ink); border-color:var(--sk-verm-ink); }
+.pill.info{ background:var(--sk-navy-tint); color:var(--sk-navy); border-color:var(--sk-navy); }
+.room-badge{ background:var(--sk-paper); border:2px solid var(--sk-ink); border-radius:99px; font-weight:600; }
+.venue-votes{ border-top:2px solid var(--sk-paper-d); }
+.v-vote-btn{ border:2px solid var(--sk-ink); border-radius:5px; background:var(--sk-card); color:var(--sk-ink); font-weight:700; }
+.v-vote-btn.active-up{ background:var(--sk-teal); color:var(--sk-card); }
+.v-vote-btn.active-down{ background:var(--sk-verm); color:var(--sk-card); }
+.v-vote-btn.active-meh{ background:var(--sk-mustard); color:var(--sk-ink); }
+.vote-avatar{ color:var(--sk-ink-soft); font-weight:600; }
+.travel-box{ background:var(--sk-paper); border:2px solid var(--sk-ink); border-radius:5px; color:var(--sk-ink); }
+.travel-box .tlabel{ color:var(--sk-ink-soft); font-weight:800; }
+.loading-card{ border:2.5px dashed var(--sk-ink); background:var(--sk-paper); border-radius:6px; }
+.spinner{ border:2px solid var(--sk-paper-d); border-top-color:var(--sk-verm); }
+
+/* ── Buchung ── */
+.info-item{ background:var(--sk-paper); border:2.5px solid var(--sk-ink); border-radius:5px; }
+.info-item .lbl{ color:var(--sk-ink-soft); font-weight:800; }
+.arrival-name{ font-weight:700; }
+.arrival-dt{ border:2px solid var(--sk-ink); border-radius:5px; background:var(--sk-card); color:var(--sk-ink); }
+.arrival-lbl{ color:var(--sk-ink-soft); font-weight:800; }
+
+/* ── Übersicht ── */
+.event-card{ background:var(--sk-card); border:2.5px solid var(--sk-ink); border-radius:6px; box-shadow:4px 4px 0 var(--sk-ink); }
+.event-name{ font-weight:700; } .event-meta{ color:var(--sk-ink-soft); }
+.event-year{ font-family:'Anton',sans-serif; font-weight:400; color:var(--sk-verm); font-size:1.1rem; }
+.stat-num{ font-size:1.5rem; line-height:1; } .stat-label{ color:var(--sk-ink-soft); font-weight:700; }
+.avg-bar{ background:var(--sk-paper-d); border:2px solid var(--sk-ink); height:9px; } .avg-fill{ background:var(--sk-teal); }
+.active-event-card{ background:var(--sk-teal); color:var(--sk-card); border:3px solid var(--sk-ink); border-radius:6px; box-shadow:6px 6px 0 var(--sk-ink); }
+.active-event-card h3{ font-size:1.9rem; line-height:1; margin-top:3px; } .active-event-card p{ opacity:.85; }
+.active-event-card > div:first-child{ min-width:0; }
+
+/* ── Abrechnung ── */
+.expense-table th, .settlement-table th{ color:var(--sk-ink-soft); font-weight:800; border-bottom:2.5px solid var(--sk-ink); }
+.expense-table td{ border-bottom:2px solid var(--sk-paper-d); }
+.expense-table tr:hover td, .settlement-table tr:hover td{ background:var(--sk-paper); }
+.cat-badge{ font-weight:800; border:2px solid var(--sk-ink); }
+.cat-einkauf{ background:var(--sk-teal); color:var(--sk-card); } .cat-anreise{ background:var(--sk-navy); color:var(--sk-card); }
+.cat-haus{ background:var(--sk-mustard); color:var(--sk-ink); } .cat-sonstiges{ background:var(--sk-paper-d); color:var(--sk-ink); }
+.settlement-table td{ border-top:2px solid var(--sk-paper-d); }
+.transfer-amount{ font-family:'Anton',sans-serif; font-weight:400; font-size:1.15rem; }
+.balance-item{ background:var(--sk-paper); border:2.5px solid var(--sk-ink); border-radius:5px; }
+.balance-name{ font-weight:700; }
+.balance-val{ font-family:'Anton',sans-serif; font-weight:400; font-size:1.2rem; white-space:nowrap; }
+.balance-pos{ color:var(--sk-teal-ink); } .balance-neg{ color:var(--sk-verm-ink); } .balance-zero{ color:var(--sk-ink-soft); }
+.participant-toggle{ border:2px solid var(--sk-ink); border-radius:99px; background:var(--sk-card); color:var(--sk-ink); font-weight:700; }
+.participant-toggle.active{ background:var(--sk-ink); color:var(--sk-card); }
+.archive-banner{ background:var(--sk-ink); color:var(--sk-card); border:3px solid var(--sk-ink); border-radius:6px; box-shadow:5px 5px 0 var(--sk-mustard); }
+.archive-banner h3{ font-size:1.4rem; text-transform:uppercase; } .archive-banner p{ opacity:.8; }
+
+/* ── Stats / Scoreboard ── */
+.stats-hero{ background:var(--sk-ink); border:3px solid var(--sk-ink); border-radius:6px; box-shadow:5px 5px 0 var(--sk-ink); gap:3px; }
+.stats-hero-item{ background:var(--sk-card); padding:20px 16px; }
+.stats-hero-num{ font-family:'Anton',sans-serif; font-weight:400; font-size:2.1rem; letter-spacing:0; color:var(--sk-teal); }
+.stats-hero-item:nth-child(2) .stats-hero-num{ color:var(--sk-verm); }
+.stats-hero-item:nth-child(3) .stats-hero-num{ color:var(--sk-navy); }
+.stats-hero-item:nth-child(4) .stats-hero-num{ color:var(--sk-mustard-ink); }
+.stats-hero-lbl{ color:var(--sk-ink-soft); font-weight:800; margin-top:5px; }
+.dropzone{ border:2.5px dashed var(--sk-ink); background:var(--sk-paper); border-radius:6px; }
+.dropzone:hover, .dropzone.dz-over{ border-color:var(--sk-verm); background:var(--sk-paper-d); }
+.lb-table th{ color:var(--sk-ink-soft); font-weight:800; border-bottom:2.5px solid var(--sk-ink); }
+.lb-table td{ border-top:2px solid var(--sk-paper-d); }
+.lb-table tr:hover td{ background:var(--sk-paper); }
+.lb-rank{ font-family:'Anton',sans-serif; font-weight:400; font-size:1.15rem; color:var(--sk-paper-d); }
+.lb-rank.gold{ color:var(--sk-mustard); } .lb-rank.silver{ color:#8d8d8d; } .lb-rank.bronze{ color:#a0714f; }
+.lb-table tbody tr:nth-child(1) td{ background:var(--sk-mustard-tint); }
+.lb-table tbody tr:nth-child(2) td{ background:#f1eee6; }
+.lb-table tbody tr:nth-child(3) td{ background:#f7ece2; }
+.win-track{ background:var(--sk-paper-d); border:2px solid var(--sk-ink); height:11px; border-radius:99px; }
+.win-bar{ background:var(--sk-teal); border-radius:99px; }
+.win-expected{ background:var(--sk-ink); width:3px; height:15px; top:-4px; border-radius:1px; }
+.delta-pos{ color:var(--sk-teal-ink); } .delta-neg{ color:var(--sk-verm-ink); } .delta-neu{ color:var(--sk-ink-soft); }
+.game-thumb{ border:2px solid var(--sk-ink); border-radius:5px; }
+.npc-chip{ background:var(--sk-paper-d); color:var(--sk-ink-soft); border:2px solid var(--sk-ink-soft); border-radius:99px; font-weight:700; }
+.map-row{ border-bottom:2px solid var(--sk-paper-d); } .map-name{ font-weight:700; } .map-arrow{ color:var(--sk-ink-soft); font-weight:800; }
