@@ -74,10 +74,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .context-banner .cb-switch:hover { color: #1a1a1a; }
 .event-list-card { background: #fff; border: 2px solid #e8e6e0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s; }
 .event-list-card:hover { border-color: #bbb; }
-.event-list-card.selected.active-ev { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-.event-list-card.selected.active-ev .event-list-meta { color: rgba(255,255,255,0.5); }
-.event-list-card.selected.active-ev .btn { background: #333 !important; color: #fff !important; border-color: #555 !important; }
-.event-list-card.selected:not(.active-ev) { border-color: #1a1a1a; background: #fafaf8; }
+.event-list-card.selected.active-ev { background: var(--sk-teal); color: var(--sk-card); border-color: var(--sk-ink); box-shadow: 6px 6px 0 var(--sk-ink); }
+.event-list-card.selected.active-ev .event-list-name { font-family: 'Anton', sans-serif; font-size: 1.7rem; line-height: 1; letter-spacing: .02em; font-weight: 400; }
+.event-list-card.selected.active-ev .event-list-meta { color: rgba(255,255,255,0.75); }
+.event-list-card.selected.active-ev .btn { background: rgba(0,0,0,0.25) !important; color: var(--sk-card) !important; border-color: rgba(0,0,0,0.35) !important; box-shadow: 2px 2px 0 rgba(0,0,0,0.3) !important; }
+.event-list-card.selected:not(.active-ev) { border-color: var(--sk-ink); background: #fafaf8; }
 .event-list-card.archived { opacity: 0.65; }
 
 .content { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
@@ -425,10 +426,10 @@ h2 { font-size: 1.02rem; font-weight: 700; }
       <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:8px">In Planung</div>
       <template x-for="ev in activeEvents" :key="ev.id">
         <div class="event-list-card active-ev" :class="{selected: ev.id===selectedEventId}" @click="selectEvent(ev.id)">
-          <div style="flex:1">
+          <div style="flex:1;min-width:0">
+            <div x-show="ev.id===selectedEventId" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;margin-bottom:3px">Aktives Event</div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-              <span style="font-weight:700;font-size:0.95rem" x-text="ev.name"></span>
-              <span x-show="ev.id===selectedEventId" style="font-size:0.65rem;background:rgba(255,255,255,0.18);color:rgba(255,255,255,0.85);padding:1px 7px;border-radius:10px;font-weight:700;border:1px solid rgba(255,255,255,0.25)">Ausgewählt</span>
+              <span class="event-list-name" style="font-weight:700;font-size:0.95rem" x-text="ev.name"></span>
             </div>
             <div class="event-list-meta" style="font-size:0.78rem;color:#888" x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></div>
           </div>
