@@ -8,6 +8,10 @@
    erben den Look automatisch.
    ════════════════════════════════════════════════════════════════ */
 
+/* Schriften selbst laden — so funktioniert das Theme auch dann,
+   wenn der <link> im HTML-<head> fehlt (z. B. nach einem Merge). */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap');
+
 :root{
   --sk-paper:#F1E4C8; --sk-paper-d:#E2D0AB; --sk-card:#FBF4E3;
   --sk-ink:#211F18; --sk-ink-soft:#6B6450;
