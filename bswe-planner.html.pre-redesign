@@ -65,17 +65,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tab:hover:not(.tab-disabled) { color: #1a1a1a; }
 .tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
 .tab-disabled { opacity: 0.35; cursor: not-allowed !important; }
-.context-banner { background: #f5f3f0; border-bottom: 1px solid #e8e6e0; padding: 5px 20px; display: flex; align-items: center; gap: 10px; font-size: 0.77rem; color: #555; min-height: 32px; }
-.context-banner strong { color: #1a1a1a; font-weight: 700; }
-.context-banner .cb-status { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-.context-banner .cb-status.active { background: #e6f4ea; color: #2d7a3a; }
-.context-banner .cb-status.archived { background: #f0ede8; color: #999; }
-.context-banner .cb-switch { margin-left: auto; color: #888; cursor: pointer; font-size: 0.75rem; text-decoration: none; }
-.context-banner .cb-switch:hover { color: #1a1a1a; }
-.event-list-card { background: #fff; border: 2px solid #e8e6e0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: border-color 0.15s; }
-.event-list-card:hover { border-color: #bbb; }
-.event-list-card.selected { border-color: #1a1a1a; background: #fafaf8; }
-.event-list-card.archived { opacity: 0.65; }
 
 .content { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
 .card { background: #fff; border-radius: 12px; border: 1px solid #e8e6e0; overflow: hidden; margin-bottom: 16px; }
@@ -374,9 +363,9 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     @click="if(!currentEvent.archived) tab='games'"
     :title="currentEvent.archived ? 'Kein aktives Event' : ''">🎲 Spielauswahl</div>
   <div class="tab"
-    :class="{active: tab==='food', 'tab-disabled': currentEvent.archived}"
-    @click="if(!currentEvent.archived) tab='food'"
-    :title="currentEvent.archived ? 'Kein aktives Event' : ''">🍽 Essensplanung</div>
+    :class="{active: tab==='food', 'tab-disabled': currentEvent.archived || !finalDate}"
+    @click="if(!currentEvent.archived && finalDate) tab='food'"
+    :title="currentEvent.archived ? 'Kein aktives Event' : !finalDate ? 'Erst Termin fixieren' : ''">🍽 Essensplanung</div>
   <div class="tab"
     :class="{active: tab==='settlement', 'tab-disabled': currentEvent.archived}"
     @click="if(!currentEvent.archived) tab='settlement'"
@@ -384,25 +373,14 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div class="tab" :class="{active: tab==='stats'}" @click="tab='stats'">📊 Stats</div>
 </div>
 
-<!-- Context Banner: permanent event context when in any non-overview tab -->
-<div class="context-banner" x-show="tab !== 'overview' && tab !== 'stats'">
-  <strong x-text="selectedEvent.name || '(kein Event)'"></strong>
-  <span class="cb-status" :class="selectedEvent.archived ? 'archived' : 'active'"
-        x-text="selectedEvent.archived ? 'Archiviert' : 'In Planung'"></span>
-  <span style="color:#bbb">·</span>
-  <span x-text="eventParticipants.length + ' Personen'"></span>
-  <a class="cb-switch" @click="tab='overview'">Event wechseln ↗</a>
-</div>
-
 <!-- ══════════════════════════ ÜBERSICHT ══ -->
 <div class="content" x-show="tab==='overview'">
-  <p class="section-label">Alle Events — klicken zum Auswählen.</p>
+  <p class="section-label">Alle Events — abgeschlossen und laufend.</p>
 
-  <!-- Stats (nur archivierte Events) -->
-  <div class="card" x-show="archivedEvents.length > 0" style="margin-bottom:20px">
+  <div class="card" style="margin-bottom:20px">
     <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
       <div style="padding:12px;border-right:1px solid #f0ede8">
-        <div class="stat-num" x-text="archivedEvents.length"></div>
+        <div class="stat-num" x-text="pastEvents.length"></div>
         <div class="stat-label">Events</div>
       </div>
       <div style="padding:12px;border-right:1px solid #f0ede8">
@@ -416,45 +394,31 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </div>
   </div>
 
-  <!-- Event-Liste: aktive Events -->
-  <template x-if="activeEvents.length > 0">
+  <!-- Aktives Event -->
+  <div class="active-event-card" x-show="!currentEvent.archived">
     <div>
-      <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:8px">In Planung</div>
-      <template x-for="ev in activeEvents" :key="ev.id">
-        <div class="event-list-card" :class="{selected: ev.id===selectedEventId}" @click="selectEvent(ev.id)">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-              <span style="font-weight:700;font-size:0.95rem" x-text="ev.name"></span>
-              <span x-show="ev.id===selectedEventId" style="font-size:0.65rem;background:#1a1a1a;color:#fff;padding:1px 7px;border-radius:10px;font-weight:700">Ausgewählt</span>
-            </div>
-            <div style="font-size:0.78rem;color:#888" x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></div>
-          </div>
-          <template x-if="ev.id===selectedEventId">
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click.stop="tab='dates'">📅 Termine</button>
-              <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click.stop="tab='venues'">🏡 Unterkünfte</button>
-              <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click.stop="tab='settlement'">💶 Abrechnung</button>
-              <template x-if="me==='admin'">
-                <button class="btn btn-sm" style="background:#f0ede8;color:#555;border:1px solid #ddd" @click.stop="editingEventName=true;tempEventName=ev.name">✏️</button>
-              </template>
-              <template x-if="me==='admin'">
-                <button class="btn btn-sm" style="background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click.stop="showDeleteConfirm=true">🗑</button>
-              </template>
-            </div>
-          </template>
-        </div>
-        <!-- Inline rename form -->
-        <div x-show="editingEventName && ev.id===selectedEventId" style="margin:-4px 0 8px 0;padding:10px 16px;background:#f5f3f0;border-radius:8px;display:flex;gap:8px;align-items:center">
-          <input type="text" x-model="tempEventName" style="font-size:0.95rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px;flex:1;max-width:280px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.5;margin-bottom:4px">Aktives Event</div>
+      <template x-if="!editingEventName"><h3 x-text="currentEvent.name"></h3></template>
+      <template x-if="editingEventName">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" x-model="tempEventName" style="font-size:1rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
           <button class="btn btn-sm btn-primary" @click="currentEvent={...currentEvent,name:tempEventName};editingEventName=false">OK</button>
           <button class="btn btn-sm btn-ghost" @click="editingEventName=false">✕</button>
         </div>
       </template>
+      <p x-text="eventParticipants.map(p=>p.name).join(', ')"></p>
     </div>
-  </template>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='dates'">📅 Termine</button>
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='venues'">🏡 Unterkünfte</button>
+      <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='settlement'">💶 Abrechnung</button>
+      <button x-show="me==='admin' && !editingEventName" class="btn btn-sm" style="background:#f0ede8;color:#555;border:1px solid #ddd" @click="editingEventName=true;tempEventName=currentEvent.name">✏️ Umbenennen</button>
+      <button x-show="me==='admin'" class="btn btn-sm" style="background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78;margin-left:8px" @click="showDeleteConfirm=true">🗑 Löschen</button>
+    </div>
+  </div>
 
-  <!-- Teilnehmer des ausgewählten aktiven Events -->
-  <div class="card" x-show="!selectedEvent.archived" style="margin-top:12px">
+  <!-- Teilnehmer des aktiven Events -->
+  <div class="card" x-show="!currentEvent.archived">
     <div class="card-header">
       <h2>👥 Teilnehmer</h2>
       <span class="badge badge-blue" x-text="currentParticipantIds.length+' Personen'"></span>
@@ -475,35 +439,29 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </div>
   </div>
 
-  <!-- Archivierte Events -->
-  <template x-if="archivedEvents.length > 0">
-    <div style="margin-top:20px">
-      <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:8px">Archiviert</div>
-      <template x-for="ev in archivedEvents" :key="ev.id">
-        <div class="event-list-card archived" :class="{selected: ev.id===selectedEventId}" @click="selectEvent(ev.id)">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:0.72rem;font-weight:700;color:#aaa" x-text="ev.year"></span>
-              <span style="font-weight:700;font-size:0.9rem" x-text="ev.name"></span>
-            </div>
-            <div style="font-size:0.75rem;color:#999;margin-top:2px" x-text="(ev.location?ev.location+' · ':'')+((ev.participantNames||ev.participants||[]).join(', '))"></div>
-          </div>
-          <div class="stat-block" x-show="ev.costPerPerson>0">
-            <div class="stat-num" x-text="ev.costPerPerson+'€'"></div>
-            <div class="stat-label">pro Person</div>
-          </div>
-          <div class="stat-block" x-show="ev.total>0">
-            <div class="stat-num" x-text="ev.total+'€'"></div>
-            <div class="stat-label">Gesamt</div>
-          </div>
-          <span class="badge badge-green">Archiviert</span>
-        </div>
-      </template>
+  <!-- Past events list -->
+  <template x-for="ev in pastEvents" :key="ev.id">
+    <div class="event-card archived">
+      <div style="flex:1">
+        <div class="event-year" x-text="ev.year"></div>
+        <div class="event-name" x-text="ev.name"></div>
+        <div class="event-meta" x-text="(ev.location?ev.location+' · ':'')+ev.participants.join(', ')"></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-num" x-text="ev.costPerPerson+'€'"></div>
+        <div class="stat-label">pro Person</div>
+        <div class="avg-bar" style="width:80px;margin:4px auto 0"><div class="avg-fill" :style="'width:'+Math.min(100,ev.costPerPerson/3)+'%'"></div></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-num" x-text="ev.total+'€'"></div>
+        <div class="stat-label">Gesamt</div>
+      </div>
+      <span class="badge badge-green">Archiviert</span>
     </div>
   </template>
 
-  <!-- Neues Event anlegen — Admin only, immer verfügbar -->
-  <div class="card" x-show="me==='admin'" style="margin-top:20px">
+  <!-- Neues Event — nur für Admin, nur wenn kein aktives Event -->
+  <div class="card" x-show="currentEvent.archived && me==='admin'" style="margin-top:8px">
     <div class="card-header"><h2>+ Neues Event anlegen</h2></div>
     <div class="card-body">
       <div>
@@ -533,13 +491,13 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </div>
   </div>
 
-  <!-- Non-admin, kein aktives Event -->
-  <div x-show="activeEvents.length===0 && me!=='admin'" style="text-align:center;padding:20px;font-size:0.83rem;color:#aaa;border:1px dashed #e0ddd8;border-radius:12px;margin-top:8px">
+  <!-- Non-admin, event archived -->
+  <div x-show="currentEvent.archived && me!=='admin'" style="text-align:center;padding:20px;font-size:0.83rem;color:#aaa;border:1px dashed #e0ddd8;border-radius:12px;margin-top:8px">
     Kein aktives Event. Der Admin kann ein neues anlegen.
   </div>
 
-  <!-- Small note -->
-  <div x-show="!selectedEvent.archived" style="font-size:0.75rem;color:#ccc;text-align:center;margin-top:4px">
+  <!-- Active event, non-admin: small note -->
+  <div x-show="!currentEvent.archived" style="font-size:0.75rem;color:#ccc;text-align:center;margin-top:4px">
     Ein neues Event kann erst angelegt werden, wenn dieses archiviert ist.
   </div>
 </div>
@@ -1125,56 +1083,12 @@ async function supabasePut(data) {
 }
 
 // Felder die persistent gespeichert werden:
-const PERSIST_KEYS = ['allPeople','events','selectedEventId',
+const PERSIST_KEYS = ['allPeople','currentParticipantIds','pastEvents','currentEvent',
+  'dates','votes','finalDate','finalDateId','venues','venueVotes','booking','arrivals','expenses',
+  'games','gameVotes','schedule',
+  'recipes','foodVotes','selectedMealIds','foodLocked',
+  'manualShoppingItems','mealCategoryPersonIds','shoppingItemCategories',
   'bgPlays','bgGames','bgPlayers','bgPlayerMap'];
-
-// Default per-event data (used when creating new events or migrating old format)
-function defaultEventData(overrides = {}) {
-  return {
-    participantIds: ['christoph','andreas','michael','markus','nico'],
-    dates: [],
-    votes: {},
-    finalDate: null,
-    finalDateId: null,
-    venues: [
-      { id:'muehle', name:'Die Mühle', winner:false, permanent:true,
-        url:'', price:0, beds:5, sauna:false, bigTable:true, sqm:null,
-        location:'Hauptstraße 25, 27419 Vierden', trainStation:null,
-        rooms:[], notes:'Schlüssel unter dem linken Türpfosten.',
-        photos:[
-          'muehle_photos/IMG_20160815_185039389_HDR.jpg',
-          'muehle_photos/IMG_20160825_205851228.jpg',
-          'muehle_photos/IMG_20161127_131534373.jpg',
-          'muehle_photos/IMG_20161127_131551617_HDR.jpg',
-          'muehle_photos/IMG_20161127_131724084_HDR.jpg',
-          'muehle_photos/IMG_20161127_132220955.jpg',
-          'muehle_photos/IMG_20161204_101426205.jpg',
-        ], userNote:'' },
-    ],
-    venueVotes: {},
-    booking: { keyCode:'', checkin:'', checkout:'', address:'', host:'', notes:'' },
-    arrivals: {},
-    expenses: [],
-    settlement: [],
-    recipes: [],
-    foodVotes: {},
-    selectedMealIds: [],
-    foodLocked: false,
-    manualShoppingItems: [],
-    mealCategoryPersonIds: {},
-    shoppingItemCategories: {},
-    games: [
-      { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', rating: '8.0', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', rating: '8.2', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', rating: '8.4', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', rating: '7.9', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', rating: '8.3', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-    ],
-    gameVotes: {},
-    schedule: {},
-    ...overrides
-  };
-}
 
 let _saveTimer = null;
 function scheduleSave(appState) {
@@ -1252,13 +1166,17 @@ function app() {
     venueSortBy: 'votes',
     dateSortBy: 'votes',
 
-    // ── Per-event data: all stored in events[], accessed via selectedEvent ──
-    // UI-only food/game state (not per-event)
+    // ── Food ──
+    recipes: [],
+    foodVotes: {},
+    selectedMealIds: [],
+    foodLocked: false,
     foodSortBy: 'votes',
     foodFilters: [],
     recipeInput: '',
     analyzingRecipe: false,
     recipeError: '',
+    manualShoppingItems: [],
     newManualItem: '',
     newManualItemAmount: '',
     get mealCategories() {
@@ -1270,7 +1188,19 @@ function app() {
         {id:'c_snacks',      name:'Snacks',      personId: ids['c_snacks']||null},
       ];
     },
+    mealCategoryPersonIds: {},
+    shoppingItemCategories: {},
 
+    // ── Games ── (Mock-Daten für Testing – BGG-API ausstehend)
+    games: [
+      { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, maxPlaytime: 90, description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, maxPlaytime: 120, description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, maxPlaytime: 120, description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, maxPlaytime: 90, description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+      { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, maxPlaytime: 180, description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+    ],
+    gameVotes: {},
+    schedule: {},
     // ── BGStats ──
     bgPlays: [],
     bgGames: {},
@@ -1295,92 +1225,48 @@ function app() {
       { id:'nico',      name:'Nico',      short:'NC', hometown:'' },
     ],
 
-    // ── Events store ──
-    events: [
-      {
-        id: 'current',
-        name: 'Nächstes BSWE',
-        archived: false,
-        year: new Date().getFullYear().toString(),
-        location: '',
-        total: 0,
-        costPerPerson: 0,
-        ...defaultEventData()
-      }
-    ],
-    selectedEventId: 'current',
-
-    // ── selectedEvent computed ──
-    get selectedEvent() {
-      return this.events.find(e => e.id === this.selectedEventId)
-          || this.events.find(e => !e.archived)
-          || this.events[0]
-          || { id:'_empty', name:'', archived:true, participantIds:[], dates:[], votes:{}, finalDate:null, finalDateId:null, venues:[], venueVotes:{}, booking:{keyCode:'',checkin:'',checkout:'',address:'',host:'',notes:''}, arrivals:{}, expenses:[], settlement:[], recipes:[], foodVotes:{}, selectedMealIds:[], foodLocked:false, manualShoppingItems:[], mealCategoryPersonIds:{}, shoppingItemCategories:{}, games:[], gameVotes:{}, schedule:{} };
-    },
-
-    // ── Helper: update a field on the selected event ──
-    _setOnSelected(key, val) {
-      const idx = this.events.findIndex(e => e.id === this.selectedEventId);
-      if (idx >= 0) this.events[idx][key] = val;
-    },
-
-    // ── Proxy getters/setters: per-event data (template unchanged) ──
-    get currentEvent()   { return this.selectedEvent; },
-    set currentEvent(v)  { const i=this.events.findIndex(e=>e.id===v.id); if(i>=0)this.events[i]={...this.events[i],...v}; else this.events.push(v); },
-    get pastEvents()     { return this.events.filter(e=>e.archived); },
-    get currentParticipantIds() { return this.selectedEvent.participantIds||[]; },
-    set currentParticipantIds(v){ this._setOnSelected('participantIds',v); },
-    get dates()          { return this.selectedEvent.dates||[]; },
-    set dates(v)         { this._setOnSelected('dates',v); },
-    get votes()          { return this.selectedEvent.votes||{}; },
-    set votes(v)         { this._setOnSelected('votes',v); },
-    get finalDate()      { return this.selectedEvent.finalDate||null; },
-    set finalDate(v)     { this._setOnSelected('finalDate',v); },
-    get finalDateId()    { return this.selectedEvent.finalDateId||null; },
-    set finalDateId(v)   { this._setOnSelected('finalDateId',v); },
-    get venues()         { return this.selectedEvent.venues||[]; },
-    set venues(v)        { this._setOnSelected('venues',v); },
-    get venueVotes()     { return this.selectedEvent.venueVotes||{}; },
-    set venueVotes(v)    { this._setOnSelected('venueVotes',v); },
-    get booking()        { return this.selectedEvent.booking||{keyCode:'',checkin:'',checkout:'',address:'',host:'',notes:''}; },
-    set booking(v)       { this._setOnSelected('booking',v); },
-    get arrivals()       { return this.selectedEvent.arrivals||{}; },
-    set arrivals(v)      { this._setOnSelected('arrivals',v); },
-    get expenses()       { return this.selectedEvent.expenses||[]; },
-    set expenses(v)      { this._setOnSelected('expenses',v); },
-    get settlement()     { return this.selectedEvent.settlement||[]; },
-    set settlement(v)    { this._setOnSelected('settlement',v); },
-    get recipes()        { return this.selectedEvent.recipes||[]; },
-    set recipes(v)       { this._setOnSelected('recipes',v); },
-    get foodVotes()      { return this.selectedEvent.foodVotes||{}; },
-    set foodVotes(v)     { this._setOnSelected('foodVotes',v); },
-    get selectedMealIds(){ return this.selectedEvent.selectedMealIds||[]; },
-    set selectedMealIds(v){ this._setOnSelected('selectedMealIds',v); },
-    get foodLocked()     { return this.selectedEvent.foodLocked||false; },
-    set foodLocked(v)    { this._setOnSelected('foodLocked',v); },
-    get manualShoppingItems(){ return this.selectedEvent.manualShoppingItems||[]; },
-    set manualShoppingItems(v){ this._setOnSelected('manualShoppingItems',v); },
-    get mealCategoryPersonIds(){ return this.selectedEvent.mealCategoryPersonIds||{}; },
-    set mealCategoryPersonIds(v){ this._setOnSelected('mealCategoryPersonIds',v); },
-    get shoppingItemCategories(){ return this.selectedEvent.shoppingItemCategories||{}; },
-    set shoppingItemCategories(v){ this._setOnSelected('shoppingItemCategories',v); },
-    get games()          { return this.selectedEvent.games||[]; },
-    set games(v)         { this._setOnSelected('games',v); },
-    get gameVotes()      { return this.selectedEvent.gameVotes||{}; },
-    set gameVotes(v)     { this._setOnSelected('gameVotes',v); },
-    get schedule()       { return this.selectedEvent.schedule||{}; },
-    set schedule(v)      { this._setOnSelected('schedule',v); },
+    currentParticipantIds: ['christoph','andreas','michael','markus','nico'],
 
     get eventParticipants() {
       return this.allPeople.filter(p => this.currentParticipantIds.includes(p.id));
     },
 
+    pastEvents: [],
+
+    currentEvent: { id:'current', name:'Nächstes BSWE', archived: false },
+
     newEvent: { name:'', participants:[] },
     newPerson: { name:'', short:'', hometown:'' },
 
+    dates: [],
+    votes: {},
+    finalDate: null,
+    finalDateId: null,
     newDate: { from:'', to:'', sub:'' },
 
+    venues: [
+      { id:'muehle', name:'Die Mühle', winner:false, permanent:true,
+        url:'', price:0, beds:5, sauna:false, bigTable:true, sqm:null,
+        location:'Hauptstraße 25, 27419 Vierden', trainStation:null,
+        rooms:[], notes:'Schlüssel unter dem linken Türpfosten.',
+        photos:[
+          'muehle_photos/IMG_20160815_185039389_HDR.jpg',
+          'muehle_photos/IMG_20160825_205851228.jpg',
+          'muehle_photos/IMG_20161127_131534373.jpg',
+          'muehle_photos/IMG_20161127_131551617_HDR.jpg',
+          'muehle_photos/IMG_20161127_131724084_HDR.jpg',
+          'muehle_photos/IMG_20161127_132220955.jpg',
+          'muehle_photos/IMG_20161204_101426205.jpg',
+        ], userNote:'' },
+    ],
+    venueVotes: {},
+
+    booking: { keyCode:'', checkin:'', checkout:'', address:'', host:'', notes:'' },
+    arrivals: {},
+
+    expenses: [],
     newExp: { amount:'', category:'einkauf', description:'', personId:'nico' },
+    settlement: [],
 
     checkGate() {
       const GATE_PW = 'kakapups';
@@ -1400,68 +1286,17 @@ function app() {
       // State von Supabase laden (zuerst — damit peopleName() beim Identity-Check funktioniert)
       const remote = await supabaseGet();
       if (remote) {
-        if (remote.events) {
-          // New format: load directly
-          PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
-        } else if (remote.currentEvent) {
-          // Old format: migrate to events[] structure
-          const eventId = remote.currentEvent.id || 'current';
-          const activeEvent = {
-            id: eventId,
-            name: remote.currentEvent.name || 'Nächstes BSWE',
-            archived: remote.currentEvent.archived || false,
-            year: new Date().getFullYear().toString(),
-            location: '',
-            total: 0,
-            costPerPerson: 0,
-            ...defaultEventData({
-              participantIds: remote.currentParticipantIds || [],
-              dates:         remote.dates         || [],
-              votes:         remote.votes         || {},
-              finalDate:     remote.finalDate     || null,
-              finalDateId:   remote.finalDateId   || null,
-              venues:        remote.venues        || undefined,
-              venueVotes:    remote.venueVotes    || {},
-              booking:       remote.booking       || {keyCode:'',checkin:'',checkout:'',address:'',host:'',notes:''},
-              arrivals:      remote.arrivals      || {},
-              expenses:      remote.expenses      || [],
-              settlement:    remote.settlement    || [],
-              recipes:       remote.recipes       || [],
-              foodVotes:     remote.foodVotes     || {},
-              selectedMealIds: remote.selectedMealIds || [],
-              foodLocked:    remote.foodLocked    || false,
-              manualShoppingItems: remote.manualShoppingItems || [],
-              mealCategoryPersonIds: remote.mealCategoryPersonIds || {},
-              shoppingItemCategories: remote.shoppingItemCategories || {},
-              games:         remote.games         || undefined,
-              gameVotes:     remote.gameVotes     || {},
-              schedule:      remote.schedule      || {},
-            })
-          };
-          const archivedEvents = (remote.pastEvents || []).map(e => ({
-            id: e.id || 'e'+Math.random().toString(36).slice(2),
-            name: e.name || 'BSWE',
-            archived: true,
-            year: e.year || '',
-            location: e.location || '',
-            total: e.total || 0,
-            costPerPerson: e.costPerPerson || 0,
-            participantNames: e.participants || [],
-            ...defaultEventData({ participantIds: [] }),
-          }));
-          this.events = [...archivedEvents, activeEvent];
-          this.selectedEventId = eventId;
-          if (remote.allPeople)  this.allPeople  = remote.allPeople;
-          if (remote.bgPlays)    this.bgPlays    = remote.bgPlays;
-          if (remote.bgGames)    this.bgGames    = remote.bgGames;
-          if (remote.bgPlayers)  this.bgPlayers  = remote.bgPlayers;
-          if (remote.bgPlayerMap) this.bgPlayerMap = remote.bgPlayerMap;
-          scheduleSave(this);
-        }
+        PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
       }
-      // Mock-Daten: games auffüllen wenn leer
+      // Mock-Daten für Testing (bis BGG-API freigegeben): games auffüllen wenn leer
       if (!this.games || this.games.length === 0) {
-        this.games = defaultEventData().games;
+        this.games = [
+          { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', rating: '8.0', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', rating: '8.2', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', rating: '8.4', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', rating: '7.9', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+          { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', rating: '8.3', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
+        ];
         scheduleSave(this);
       }
 
@@ -1619,16 +1454,8 @@ function app() {
     },
 
     // ── Overview ──
-    avgCostPerPerson(){ const a=this.events.filter(e=>e.archived&&e.costPerPerson>0); if(!a.length)return 0; return Math.round(a.reduce((s,e)=>s+e.costPerPerson,0)/a.length); },
-    totalSpent(){ return this.events.filter(e=>e.archived).reduce((s,e)=>s+e.total,0); },
-    selectEvent(id){
-      this.selectedEventId = id;
-      // If switching to an event where tabs are disabled, go to overview
-      const ev = this.events.find(e=>e.id===id);
-      if (ev?.archived && this.tab !== 'overview' && this.tab !== 'stats') this.tab = 'overview';
-    },
-    get activeEvents()   { return this.events.filter(e=>!e.archived); },
-    get archivedEvents() { return this.events.filter(e=>e.archived); },
+    avgCostPerPerson(){ if(!this.pastEvents.length)return 0; return Math.round(this.pastEvents.reduce((s,e)=>s+e.costPerPerson,0)/this.pastEvents.length); },
+    totalSpent(){ return this.pastEvents.reduce((s,e)=>s+e.total,0); },
     toggleNewEventParticipant(id){ const i=this.newEvent.participants.indexOf(id); if(i>=0)this.newEvent.participants.splice(i,1);else this.newEvent.participants.push(id); },
     addPerson(addToEvent=false){
       if(!this.newPerson.name.trim()) return;
@@ -1643,25 +1470,15 @@ function app() {
     },
     createEvent(){
       if(!this.newEvent.name) return;
-      const newId = 'ev'+Date.now();
-      const permanentVenues = (this.venues||[]).filter(v=>v.permanent).map(v=>({...v,winner:false}));
-      const newEv = {
-        id: newId,
-        name: this.newEvent.name,
-        archived: false,
-        year: new Date().getFullYear().toString(),
-        location: '',
-        total: 0,
-        costPerPerson: 0,
-        ...defaultEventData({
-          participantIds: [...this.newEvent.participants],
-          venues: permanentVenues.length ? permanentVenues : undefined,
-        }),
-      };
-      this.events = [...this.events, newEv];
-      this.selectedEventId = newId;
-      this.newEvent = {name:'', participants:[]};
-      this.tab = 'dates';
+      this.currentParticipantIds=[...this.newEvent.participants];
+      this.currentEvent={id:'ev'+Date.now(),name:this.newEvent.name,archived:false};
+      this.expenses=[];this.settlement=[];this.dates=[];this.votes={};this.finalDate='';this.finalDateId='';
+      this.venues=this.venues.filter(v=>v.permanent).map(v=>({...v,winner:false}));
+      this.venueVotes={};
+      this.booking={keyCode:'',checkin:'',checkout:'',address:'',host:'',notes:''};
+      this.arrivals={};
+      this.newEvent={name:'',participants:[]};
+      this.tab='dates';
     },
 
     // ── Participants ──
@@ -1896,32 +1713,20 @@ function app() {
 
     // ── Schedule logic ──
     get scheduleDays() {
+      // Priorität: fixierter Termin (ISO-Datum) → booking.checkin nur wenn ISO-Format
       let from, to;
       if (this.finalDateId) {
         const fd = this.dates.find(x => x.id === this.finalDateId);
         if (fd && fd.from && fd.to) { from = fd.from; to = fd.to; }
       }
+      // Fallback: booking nur wenn Werte im ISO-Format YYYY-MM-DD sind
       if (!from && this.booking && /^\d{4}-\d{2}-\d{2}/.test(this.booking.checkin) && /^\d{4}-\d{2}-\d{2}/.test(this.booking.checkout)) {
         from = this.booking.checkin.slice(0,10); to = this.booking.checkout.slice(0,10);
       }
-      if (!from || !to) {
-        // Fallback: 4 Tage ab nächstem Freitag
-        const d = new Date(); d.setHours(12,0,0,0);
-        const dow = d.getDay(); // 0=So
-        const daysToFri = (5 - dow + 7) % 7 || 7;
-        d.setDate(d.getDate() + daysToFri);
-        from = d.toISOString().split('T')[0];
-        const end2 = new Date(d); end2.setDate(end2.getDate() + 3);
-        to = end2.toISOString().split('T')[0];
-      }
+      if (!from || !to) return [];
       const days=[], d=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
       while(d<=end){ days.push(d.toISOString().split('T')[0]); d.setDate(d.getDate()+1); }
       return days;
-    },
-    get scheduleIsFallback() {
-      if (this.finalDateId) { const fd=this.dates.find(x=>x.id===this.finalDateId); if(fd?.from&&fd?.to) return false; }
-      if (this.booking && /^\d{4}-\d{2}-\d{2}/.test(this.booking.checkin)) return false;
-      return true;
     },
     formatDay(dateStr) {
       return new Date(dateStr+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
@@ -1932,81 +1737,43 @@ function app() {
       const cat = game.durationCat || (game.maxPlaytime<=90?'kurz':game.maxPlaytime<=180?'mittel':'lang');
       return cat==='kurz'?1:cat==='mittel'?2:4;
     },
-    // ── Schedule: session-basiertes Modell [{id, gameId, startSlot}, ...] ──
-    // Migration von altem Objekt-Format: {slotIndex: gameId}
+    // Schedule: positionsbasiertes Modell {slotIndex: gid}
+    // Migration von altem Array-Format
     migrateScheduleDay(val) {
-      if (!val) return [];
+      if (!val || typeof val !== 'object') return {};
       if (Array.isArray(val)) {
-        if (val.length === 0) return [];
-        if (typeof val[0] === 'object' && val[0] !== null && 'gameId' in val[0]) return val;
-        // sehr altes Format: reines Array von gameIds
-        let pos = 0;
-        return val.map(gid => {
+        let pos = 0; const result = {};
+        for (const gid of val) {
           const g = this.games.find(x => x.id === gid || x.id === +gid);
-          const s = { id:'s'+pos+'_'+gid, gameId:isNaN(gid)?gid:+gid, startSlot:pos };
-          pos += g ? this.gameSlots(g) : 1; return s;
-        });
+          result[pos] = isNaN(gid) ? gid : +gid;
+          pos += g ? this.gameSlots(g) : 1;
+        }
+        return result;
       }
-      if (typeof val === 'object') {
-        return Object.entries(val).map(([k,v]) => ({
-          id:'s'+k+'_'+v, gameId:isNaN(v)?v:+v, startSlot:+k
-        }));
-      }
-      return [];
+      return Object.fromEntries(Object.entries(val).map(([k,v]) => [k, isNaN(v)?v:+v]));
     },
     scheduleForDay(dateStr) {
       const raw = this.schedule[dateStr];
-      if (!raw) return [];
-      return this.migrateScheduleDay(raw);
+      if (!raw) return {};
+      if (Array.isArray(raw)) return this.migrateScheduleDay(raw); // pure, no side effect
+      return raw;
     },
-    // Berechne visuelle Tracks (Reihen) für Parallelspiele
-    computeTracks(dateStr) {
-      const sessions = this.scheduleForDay(dateStr);
-      if (!sessions.length) return [];
-      const sorted = [...sessions].sort((a,b) => a.startSlot - b.startSlot);
-      const tracks = [];
-      for (const session of sorted) {
-        const g = this.games.find(x => x.id === session.gameId || x.id === +session.gameId);
-        const span = g ? this.gameSlots(g) : 1;
-        let placed = false;
-        for (const track of tracks) {
-          const lastEnd = track.reduce((max, s) => {
-            const g2 = this.games.find(x => x.id === s.gameId || x.id === +s.gameId);
-            return Math.max(max, s.startSlot + (g2 ? this.gameSlots(g2) : 1));
-          }, 0);
-          if (session.startSlot >= lastEnd) { track.push(session); placed = true; break; }
-        }
-        if (!placed) tracks.push([session]);
-      }
-      return tracks;
-    },
-    // Belegte Slots auf einem einzelnen Track
-    occupiedSlotsOnTrack(trackSessions) {
-      const occ = new Set();
-      for (const s of trackSessions) {
-        const g = this.games.find(x => x.id === s.gameId || x.id === +s.gameId);
-        const span = g ? this.gameSlots(g) : 1;
-        for (let i = 0; i < span; i++) occ.add(s.startSlot + i);
-      }
-      return occ;
-    },
-    // Alle belegten Slots über alle Tracks (für Mini-Leiste)
     occupiedSlots(dateStr) {
       const occ = new Set();
-      for (const s of this.scheduleForDay(dateStr)) {
-        const g = this.games.find(x => x.id === s.gameId || x.id === +s.gameId);
+      for (const [si, gid] of Object.entries(this.scheduleForDay(dateStr))) {
+        const g = this.games.find(x => x.id === gid || x.id === +gid);
         const span = g ? this.gameSlots(g) : 1;
-        for (let i = 0; i < span; i++) occ.add(s.startSlot + i);
+        for (let i = 0; i < span; i++) occ.add(parseInt(si) + i);
       }
       return occ;
     },
     emptySlots(dateStr) {
       const occ = this.occupiedSlots(dateStr);
-      return Array.from({length:9},(_,i)=>i).filter(i=>!occ.has(i));
+      return Array.from({length: 9}, (_, i) => i).filter(i => !occ.has(i));
     },
     daySlotsFilled(dateStr) {
-      return this.scheduleForDay(dateStr).reduce((s,session) => {
-        const g = this.games.find(x => x.id === session.gameId || x.id === +session.gameId);
+      return Object.values(this.scheduleForDay(dateStr)).reduce((s, gid) => {
+        const g = this.games.find(x => x.id === gid || x.id === +gid);
         return s + (g ? this.gameSlots(g) : 0);
       }, 0);
     },
@@ -2014,132 +1781,126 @@ function app() {
     daySlotDisplay(dateStr) {
       const slots = Array(9).fill(null);
       const colors = ['#bbdefb','#c8e6c9','#ffe0b2','#f8bbd0','#e1bee7','#b2dfdb','#fff9c4','#ffccbc','#d7ccc8'];
-      const sessions = [...this.scheduleForDay(dateStr)].sort((a,b)=>a.startSlot-b.startSlot);
-      sessions.forEach((session, idx) => {
-        const g = this.games.find(x => x.id === session.gameId || x.id === +session.gameId); if(!g) return;
+      const entries = Object.entries(this.scheduleForDay(dateStr)).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0]);
+      entries.forEach(([start, gid], idx) => {
+        const g = this.games.find(x => x.id === gid || x.id === +gid); if(!g) return;
         const color = colors[idx % colors.length];
-        for (let i = 0; i < this.gameSlots(g) && session.startSlot+i < 9; i++) {
-          if (!slots[session.startSlot+i]) slots[session.startSlot+i] = {name:g.name, color};
-        }
+        for (let i = 0; i < this.gameSlots(g) && start+i < 9; i++) slots[start+i] = {name:g.name, color};
       });
       return slots;
     },
-    // Prüfe ob ein Spiel zu einem bestimmten Slot parallel passt (auf neuem Track)
-    _sessionFitsOnNewTrack(dateStr, startSlot, span) {
-      return startSlot + span <= 9;
-    },
-    _scheduleAddSession(dateStr, gameId, startSlot) {
-      const sessions = this.scheduleForDay(dateStr);
-      if (sessions.some(s => (isNaN(s.gameId)?s.gameId:+s.gameId) === gameId)) return; // bereits drin
-      const newSession = { id:'s'+Date.now()+'_'+gameId, gameId:isNaN(gameId)?gameId:+gameId, startSlot };
-      this.schedule = {...this.schedule, [dateStr]: [...sessions, newSession]};
-      scheduleSave(this);
-    },
     scheduleAddAtSlot(dateStr, slotIndex, gameId) {
       gameId = isNaN(gameId) ? gameId : +gameId;
-      const game = this.games.find(g => g.id === gameId); if (!game) return;
-      this._scheduleAddSession(dateStr, gameId, slotIndex);
+      const game = this.games.find(g => g.id === gameId);
+      if (!game) return;
+      const span = this.gameSlots(game);
+      const occ = this.occupiedSlots(dateStr);
+      for (let i = 0; i < span; i++) { if (occ.has(slotIndex + i) || slotIndex + i > 8) return; }
+      const day = this.scheduleForDay(dateStr);
+      if (Object.values(day).map(v=>isNaN(v)?v:+v).includes(gameId)) return; // already placed
+      this.schedule = {...this.schedule, [dateStr]: {...day, [slotIndex]: gameId}};
+      scheduleSave(this);
     },
     scheduleAdd(dateStr, gameId) {
+      // Dropdown: place at first available consecutive run of slots
       gameId = isNaN(gameId) ? gameId : +gameId;
-      const game = this.games.find(g => g.id === gameId); if (!game) return;
+      const game = this.games.find(g => g.id === gameId);
+      if (!game) return;
       const span = this.gameSlots(game);
-      const tracks = this.computeTracks(dateStr);
-      // Versuche, auf einem bestehenden Track einzufügen
-      for (const track of tracks) {
-        const occ = this.occupiedSlotsOnTrack(track);
-        for (let slot = 0; slot <= 9 - span; slot++) {
-          let fits = true;
-          for (let i = 0; i < span; i++) if (occ.has(slot+i)) { fits=false; break; }
-          if (fits) { this._scheduleAddSession(dateStr, gameId, slot); return; }
-        }
+      const free = this.emptySlots(dateStr);
+      for (let i = 0; i <= free.length - span; i++) {
+        const run = free.slice(i, i + span);
+        if (run[run.length-1] - run[0] === span - 1) { this.scheduleAddAtSlot(dateStr, run[0], gameId); return; }
       }
-      // Neuer Track: slot 0 (parallel zu allem)
-      this._scheduleAddSession(dateStr, gameId, 0);
     },
     scheduleRemove(dateStr, gameId) {
       gameId = isNaN(gameId) ? gameId : +gameId;
-      const sessions = this.scheduleForDay(dateStr).filter(s => (isNaN(s.gameId)?s.gameId:+s.gameId) !== gameId);
-      this.schedule = {...this.schedule, [dateStr]: sessions};
+      const day = {...this.scheduleForDay(dateStr)};
+      for (const [k, v] of Object.entries(day)) { if ((isNaN(v)?v:+v) === gameId) delete day[k]; }
+      this.schedule = {...this.schedule, [dateStr]: day};
       scheduleSave(this);
     },
     gamesAvailableForDay(dateStr) {
-      const assigned = new Set(this.scheduleForDay(dateStr).map(s => isNaN(s.gameId)?s.gameId:+s.gameId));
+      const assigned = new Set(Object.values(this.scheduleForDay(dateStr)).map(v=>isNaN(v)?v:+v));
       return this.games.filter(g => !assigned.has(g.id));
-    },
-    // Warnung: Spielerzahl-Summe aller parallelen Spiele in einem Slot > verfügbare Spieler?
-    slotCombinedMismatch(dateStr, slotIndex) {
-      let minSum = 0;
-      for (const session of this.scheduleForDay(dateStr)) {
-        const g = this.games.find(x => x.id === session.gameId || x.id === +session.gameId); if(!g) continue;
-        const span = this.gameSlots(g);
-        if (slotIndex >= session.startSlot && slotIndex < session.startSlot + span) minSum += g.minPlayers||0;
-      }
-      const avail = this.slotPlayerCount(dateStr, slotIndex);
-      return minSum > avail ? {minSum, avail} : null;
     },
 
     // ── Schedule Drag & Drop ──
-    scheduleDragSession: null, // {id, gameId, startSlot}
+    scheduleDragGid: null,
     scheduleDragDay: null,
     scheduleDragOver: null, // 'day|slotIndex'
 
-    scheduleDragStart(day, session, ev) {
-      this.scheduleDragSession = session;
+    scheduleDragStart(day, gid, ev) {
+      this.scheduleDragGid = gid;
       this.scheduleDragDay = day;
       ev.dataTransfer.effectAllowed = 'move';
     },
     scheduleDragOverSlot(day, slotIndex, ev) {
-      if (!this.scheduleDragSession) return;
-      const game = this.games.find(g => g.id === this.scheduleDragSession.gameId || g.id === +this.scheduleDragSession.gameId);
+      if (!this.scheduleDragGid) return;
+      // Check if game fits at this slot
+      const game = this.games.find(g => g.id === this.scheduleDragGid || g.id === +this.scheduleDragGid);
       if (!game) return;
       ev.preventDefault();
       ev.dataTransfer.dropEffect = 'move';
       this.scheduleDragOver = day + '|' + slotIndex;
     },
     scheduleDrop(targetDay, targetSlot) {
-      const session = this.scheduleDragSession;
+      const srcGid = isNaN(this.scheduleDragGid) ? this.scheduleDragGid : +this.scheduleDragGid;
       const srcDay = this.scheduleDragDay;
       this.scheduleDragOver = null;
-      this.scheduleDragSession = null;
+      this.scheduleDragGid = null;
       this.scheduleDragDay = null;
-      if (!session) return;
+      if (srcGid == null) return;
 
-      const gameId = isNaN(session.gameId) ? session.gameId : +session.gameId;
-      const game = this.games.find(g => g.id === gameId);
+      const game = this.games.find(g => g.id === srcGid);
       if (!game) return;
       const span = this.gameSlots(game);
-      if (targetSlot + span > 9) return; // passt nicht ans Ende
 
+      // Atomares Update: einmal lesen, modifizieren, einmal schreiben
       const newSch = JSON.parse(JSON.stringify(this.schedule));
       // Migration falls nötig
-      newSch[srcDay]    = this.migrateScheduleDay(newSch[srcDay]    || []);
-      newSch[targetDay] = this.migrateScheduleDay(newSch[targetDay] || []);
+      if (Array.isArray(newSch[srcDay]))  newSch[srcDay]  = this.migrateScheduleDay(newSch[srcDay]);
+      if (Array.isArray(newSch[targetDay])) newSch[targetDay] = this.migrateScheduleDay(newSch[targetDay]);
 
       // Aus Quelle entfernen
-      newSch[srcDay] = newSch[srcDay].filter(s => s.id !== session.id);
+      const src = newSch[srcDay] || {};
+      for (const k of Object.keys(src)) { if ((isNaN(src[k])?src[k]:+src[k]) === srcGid) delete src[k]; }
+      newSch[srcDay] = src;
 
-      // In Ziel einfügen (mit neuem startSlot)
-      const movedSession = {...session, startSlot: targetSlot};
-      newSch[targetDay] = [...newSch[targetDay], movedSession];
+      // Prüfen ob Zielslot passt
+      const tgt = newSch[targetDay] || {};
+      const occ = new Set();
+      for (const [k, v] of Object.entries(tgt)) {
+        const g = this.games.find(x => x.id === +v || x.id === v);
+        const s = g ? this.gameSlots(g) : 1;
+        for (let i = 0; i < s; i++) occ.add(+k + i);
+      }
       for (let i = 0; i < span; i++) {
         if (occ.has(targetSlot + i) || targetSlot + i > 8) return; // passt nicht
       }
 
+      // In Ziel einfügen
+      newSch[targetDay] = {...tgt, [targetSlot]: srcGid};
       this.schedule = newSch;
       scheduleSave(this);
     },
     scheduleDragEnd() {
       this.scheduleDragOver = null;
-      this.scheduleDragSession = null;
+      this.scheduleDragGid = null;
       this.scheduleDragDay = null;
     },
     slotDropFits(day, slotIndex) {
-      if (!this.scheduleDragSession) return false;
-      const game = this.games.find(g => g.id === this.scheduleDragSession.gameId || g.id === +this.scheduleDragSession.gameId);
+      if (!this.scheduleDragGid) return false;
+      const game = this.games.find(g => g.id === this.scheduleDragGid || g.id === +this.scheduleDragGid);
       if (!game) return false;
       const span = this.gameSlots(game);
-      return slotIndex + span <= 9;
+      const occ = this.occupiedSlots(day);
+      // Temporarily remove dragged game's own slots
+      const sch = this.scheduleForDay(day);
+      const dragStart = +Object.entries(sch).find(([,v])=>(isNaN(v)?v:+v)===this.scheduleDragGid)?.[0];
+      const tempOcc = new Set([...occ].filter(s => isNaN(dragStart) || s < dragStart || s >= dragStart + this.gameSlots(game)));
+      for (let i = 0; i < span; i++) { if (tempOcc.has(slotIndex + i) || slotIndex + i > 8) return false; }
+      return true;
     },
 
     // ── Schedule: Anwesenheit ──
@@ -2187,14 +1948,12 @@ function app() {
       }
       return 0;
     },
-    gameHasPlayerMismatch(dateStr, session) {
-      const gameId = typeof session === 'object' ? (isNaN(session.gameId)?session.gameId:+session.gameId) : (isNaN(session)?session:+session);
-      const startSlot = typeof session === 'object' ? session.startSlot : (() => {
-        const s = this.scheduleForDay(dateStr).find(x=>(isNaN(x.gameId)?x.gameId:+x.gameId)===gameId);
-        return s ? s.startSlot : null;
-      })();
+    gameHasPlayerMismatch(dateStr, gameId) {
       const game = this.games.find(g=>g.id===gameId||g.id===+gameId);
-      if (!game || startSlot === null || startSlot === undefined) return false;
+      if (!game) return false;
+      const sch = this.scheduleForDay(dateStr);
+      const startSlot = +Object.entries(sch).find(([,v])=>(isNaN(v)?v:+v)===gameId)?.[0];
+      if (isNaN(startSlot)) return false;
       const span = this.gameSlots(game);
       for (let i=0; i<span; i++) {
         const count = this.slotPlayerCount(dateStr, startSlot+i);
@@ -2371,26 +2130,23 @@ function app() {
 
     showDeleteConfirm: false,
     deleteEvent(){
-      this.events = this.events.filter(e=>e.id!==this.selectedEventId);
-      // Select another event if available
-      const next = this.events.find(e=>!e.archived) || this.events[0];
-      this.selectedEventId = next?.id || null;
+      this.currentEvent={ name:'', participants:[], dates:[], bookedVenueId:null, expenses:[], archived:true };
+      this.expenses=[];
+      this.settlement=[];
+      this.dateOptions=[];
       this.showDeleteConfirm=false;
       this.tab='overview';
     },
     archiveEvent(){
       const total=Number(this.totalExpenses()),n=this.currentParticipantIds.length;
-      const idx=this.events.findIndex(e=>e.id===this.selectedEventId);
-      if(idx<0) return;
-      this.events[idx]={
-        ...this.events[idx],
-        archived:true,
-        year:new Date().getFullYear().toString(),
+      this.pastEvents.push({
+        id:'e'+Date.now(),year:new Date().getFullYear().toString(),
+        name:this.currentEvent.name||'BSWE',
         location:this.bookedVenue?this.bookedVenue.location:'',
-        participantNames:this.eventParticipants.map(p=>p.name),
-        total:Math.round(total),
-        costPerPerson:n>0?Math.round(total/n):0,
-      };
+        participants:this.eventParticipants.map(p=>p.name),
+        total:Math.round(total),costPerPerson:n>0?Math.round(total/n):0,archived:true,
+      });
+      this.currentEvent={...this.currentEvent,archived:true};
       this.tab='overview';
     },
 
@@ -2811,17 +2567,7 @@ function app() {
                     :style="game.durationCat==='kurz'?'background:#e8f5e9;color:#2e7d32':game.durationCat==='mittel'?'background:#fff3e0;color:#e65100':'background:#fce4ec;color:#c62828'"
                     x-text="game.durationCat==='kurz'?'⚡ Kurz':game.durationCat==='mittel'?'⏱ Mittel':'⏳ Lang'"></span>
             </template>
-            <!-- Rating: für Admin editierbar -->
-            <template x-if="me==='admin'">
-              <span style="display:inline-flex;align-items:center;gap:3px;font-size:0.78rem;color:#888">
-                ⭐ <input type="text" :value="game.rating||''" placeholder="–"
-                   @change="game.rating=$el.value.trim();games=[...games];scheduleSave($data)"
-                   style="width:36px;font-size:0.78rem;border:none;border-bottom:1px solid #ddd;background:transparent;color:#888;padding:0 2px;outline:none">
-              </span>
-            </template>
-            <template x-if="me!=='admin'">
-              <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
-            </template>
+            <span x-show="game.rating" style="font-size:0.78rem;color:#888">⭐ <span x-text="game.rating"></span></span>
           </div>
           <!-- Spieler & Zeit -->
           <div style="font-size:0.79rem;color:#888;margin-bottom:5px">
@@ -2837,20 +2583,10 @@ function app() {
           <p x-show="game.description" x-text="game.description"
              style="font-size:0.8rem;color:#555;line-height:1.45;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
           <!-- Links -->
-          <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:6px;flex-wrap:wrap;align-items:center">
-            <a x-show="game.videoUrl && me!=='admin'" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
-            <!-- Admin: Regelvideo-URL editierbar -->
-            <template x-if="me==='admin'">
-              <span style="display:inline-flex;align-items:center;gap:4px">
-                <span style="color:#888">▶</span>
-                <input type="url" :value="game.videoUrl||''" placeholder="Regelvideo-URL…"
-                       @change="game.videoUrl=$el.value.trim();games=[...games];scheduleSave($data)"
-                       style="font-size:0.75rem;border:none;border-bottom:1px solid #ddd;background:transparent;color:#1a73e8;padding:0 2px;outline:none;width:160px;min-width:80px">
-                <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#aaa;font-size:0.7rem">↗</a>
-              </span>
-            </template>
-            <a x-show="game.rulesUrl" :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
-            <a x-show="game.bggUrl" :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
+          <div style="display:flex;gap:12px;font-size:0.77rem;margin-bottom:10px;flex-wrap:wrap">
+            <a x-show="game.videoUrl" :href="game.videoUrl" target="_blank" style="color:#1a73e8;text-decoration:none">▶ Regelvideo</a>
+            <a :href="game.rulesUrl" target="_blank" style="color:#1a73e8;text-decoration:none">📄 Regeln</a>
+            <a :href="game.bggUrl" target="_blank" style="color:#bbb;text-decoration:none">BGG →</a>
           </div>
           <!-- Votes -->
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -2882,10 +2618,11 @@ function app() {
   <!-- ── SPIELPLAN ── -->
   <div x-show="gameSubTab==='schedule'">
 
-    <!-- Vorläufig-Banner wenn kein Termin fixiert -->
-    <div x-show="scheduleIsFallback" style="background:#fff9e6;border:1px solid #ffe082;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:0.8rem;color:#795548;display:flex;align-items:center;gap:8px">
-      <span>📅</span>
-      <span>Noch kein Termin fixiert — Spielplan wird <strong>vorläufig</strong> für 4 Tage (nächstes Wochenende) angezeigt. Die Einteilung bleibt erhalten, sobald ein Datum feststeht.</span>
+    <!-- Kein Termin verfügbar -->
+    <div x-show="!finalDate && (!booking.checkin||!booking.checkout)" class="card"
+         style="text-align:center;padding:48px 20px;opacity:0.45">
+      <div style="font-size:2rem;margin-bottom:8px">📅</div>
+      <p style="font-size:0.88rem">Erst einen Termin fixieren — dann kann der Spielplan befüllt werden.</p>
     </div>
 
     <!-- Tage -->
@@ -2896,11 +2633,10 @@ function app() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>
             <span style="font-weight:700;font-size:0.95rem" x-text="formatDay(day)"></span>
-            <span x-show="scheduleIsFallback" style="font-size:0.7rem;background:#fff9e6;color:#f57f17;border-radius:8px;padding:1px 7px;margin-left:6px;font-weight:600">vorläufig</span>
             <span style="color:#bbb;font-size:0.78rem;margin-left:6px"
-                  x-text="computeTracks(day).length+' Track'+(computeTracks(day).length!==1?'s':'')+' · '+gamesAvailableForDay(day).length+' Spiele verfügbar'"></span>
+                  x-text="daySlotsFilled(day)+'/9 Slots · '+daySlotsFree(day)+' frei (bis 00:30)'"></span>
           </div>
-          <div style="display:flex;gap:2px" :title="'Spielbelegung'">
+          <div style="display:flex;gap:2px" :title="daySlotsFree(day)+' Slots frei'">
             <template x-for="(slot,si) in daySlotDisplay(day)" :key="si">
               <div style="width:16px;height:16px;border-radius:3px;transition:background 0.2s"
                    :style="slot?'background:'+slot.color:'background:#f0ede8;border:1px solid #e8e6e0'"
@@ -2909,8 +2645,8 @@ function app() {
           </div>
         </div>
 
-        <!-- Uhrzeiten-Leiste + Spielerzahl + Parallel-Warnung -->
-        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:6px">
+        <!-- Uhrzeiten-Leiste + Spielerzahl (9 Slots, endet 00:30) -->
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;margin-bottom:3px">
           <template x-for="(t,i) in ['11:00','12:30','14:00','15:30','17:00','18:30','20:00','21:30','23:00']" :key="i">
             <div style="text-align:center;line-height:1.3"
                  :style="(i < dayFirstSlot(day) || i > dayLastSlot(day)) ? 'opacity:0.3' : ''">
@@ -2918,99 +2654,70 @@ function app() {
               <div style="font-size:0.65rem;font-weight:600"
                    :style="slotPlayerCount(day,i)>=2 ? 'color:#4caf50' : 'color:#e53935'"
                    x-text="'👤×'+slotPlayerCount(day,i)"></div>
-              <!-- Parallel-Warnung: Summe minPlayers > verfügbare Spieler -->
-              <div x-show="slotCombinedMismatch(day,i)"
-                   style="font-size:0.55rem;color:#e53935;font-weight:700"
-                   :title="slotCombinedMismatch(day,i) ? '∑min '+slotCombinedMismatch(day,i)?.minSum+' > '+slotCombinedMismatch(day,i)?.avail+' Spieler' : ''">⚠</div>
             </div>
           </template>
         </div>
 
-        <!-- Tracks: eine Zeile pro parallelem Track -->
-        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
-          <template x-for="(track, trackIdx) in computeTracks(day)" :key="trackIdx">
-            <div style="position:relative">
-              <!-- Track-Label bei mehreren Tracks -->
-              <div x-show="computeTracks(day).length > 1"
-                   style="font-size:0.6rem;color:#bbb;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px"
-                   x-text="'Tisch '+(trackIdx+1)"></div>
-              <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;min-height:88px;position:relative">
-                <!-- Spiel-Kacheln dieses Tracks -->
-                <template x-for="session in track" :key="session.id">
-                  <div x-data="{get g(){return games.find(x=>x.id===session.gameId||x.id===+session.gameId)}, get sp(){return gameSlots(games.find(x=>x.id===session.gameId||x.id===+session.gameId))}}"
-                       x-show="!!games.find(x=>x.id===session.gameId||x.id===+session.gameId)"
-                       :draggable="me==='admin'"
-                       @dragstart="me==='admin' && scheduleDragStart(day, session, $event)"
-                       @dragend="scheduleDragEnd()"
-                       :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
-                         + (scheduleDragSession&&scheduleDragSession.id===session.id ? 'opacity:0.4;' : '')
-                         + (gameHasPlayerMismatch(day,session) ? 'box-shadow:0 0 0 3px #e53935;' : '')
-                         + (me==='admin' ? 'cursor:grab;' : '')">
-                    <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
-                    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
-                    <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
-                      <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
-                      <div x-show="gameHasPlayerMismatch(day,session)" style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
-                    </div>
-                    <button x-show="me==='admin'" @click.stop="scheduleRemove(day,session.gameId)"
-                            style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
-                  </div>
-                </template>
-                <!-- Freie Drop-Slots für diesen Track -->
-                <template x-for="si in Array.from({length:9},(_,i)=>i).filter(i=>!occupiedSlotsOnTrack(track).has(i))" :key="'e'+si">
-                  <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
-                       @dragleave="scheduleDragOver=null"
-                       @drop.stop="me==='admin' && scheduleDrop(day, si)"
-                       :style="'grid-column:'+(si+1)+';border-radius:8px;transition:background 0.1s,border 0.1s;'
-                         + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
-                           ? 'border:1px dashed #e0ddd8;background:#f5f5f3;opacity:0.35;'
-                           : scheduleDragOver===day+'|'+si && slotDropFits(day,si)
-                             ? 'border:2px solid #1a73e8;background:#e8f0fe;'
-                             : scheduleDragOver===day+'|'+si
-                               ? 'border:2px solid #e53935;background:#fce4ec;'
-                               : 'border:1px dashed #e0ddd8;background:#faf9f7;')">
-                  </div>
-                </template>
+        <!-- Kachel-Grid: positionsbasiert, explizite grid-column -->
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;min-height:110px;margin-bottom:8px;position:relative">
+          <!-- Belegte Kacheln (explizite Start-Positionen) -->
+          <template x-for="[si, gid] in Object.entries(scheduleForDay(day)).map(([k,v])=>[+k,v]).sort((a,b)=>a[0]-b[0])" :key="String(si)+'-'+gid">
+            <div x-data="{get g(){return games.find(x=>x.id===gid||x.id===+gid)}, get sp(){return gameSlots(games.find(x=>x.id===gid||x.id===+gid))}}"
+                 x-show="!!games.find(x=>x.id===gid||x.id===+gid)"
+                 :draggable="me==='admin'"
+                 @dragstart="me==='admin' && scheduleDragStart(day, gid, $event)"
+                 @dragend="scheduleDragEnd()"
+                 :style="'grid-column:'+(si+1)+' / span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                   + ((scheduleDragGid===gid||scheduleDragGid===+gid) ? 'opacity:0.4;' : '')
+                   + (gameHasPlayerMismatch(day,gid) ? 'box-shadow:0 0 0 3px #e53935;' : '')
+                   + (me==='admin' ? 'cursor:grab;' : '')">
+              <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
+                <div style="color:#fff;font-size:0.7rem;font-weight:600;line-height:1.3" x-text="g&&g.name"></div>
+                <div x-show="gameHasPlayerMismatch(day,gid)" style="color:#ff8a80;font-size:0.58rem;margin-top:1px">⚠ Spielerzahl passt nicht</div>
               </div>
+              <button x-show="me==='admin'" @click.stop="scheduleRemove(day,gid)"
+                      style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
             </div>
           </template>
-
-          <!-- Kein Spiel geplant -->
-          <div x-show="computeTracks(day).length===0 && me!=='admin'"
-               style="text-align:center;padding:24px;color:#ccc;font-size:0.82rem;border:1px dashed #e8e6e0;border-radius:8px">
-            Noch keine Spiele für diesen Tag geplant.
-          </div>
-
-          <!-- Leere Vorlage für Drag-Drop auf neuen Track -->
-          <div x-show="me==='admin' && scheduleDragSession && scheduleDragDay!==day"
-               style="border:2px dashed #1a73e8;border-radius:8px;padding:8px;opacity:0.6">
-            <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;height:44px">
-              <template x-for="si in Array.from({length:9},(_,i)=>i)" :key="'new'+si">
-                <div @dragover="scheduleDragOverSlot(day, si, $event)"
-                     @dragleave="scheduleDragOver=null"
-                     @drop.stop="scheduleDrop(day, si)"
-                     :style="'grid-column:'+(si+1)+';border-radius:6px;background:'+(scheduleDragOver===day+'|'+si?'#e8f0fe':'#f0f4ff')+';transition:background 0.1s'">
-                </div>
-              </template>
+          <!-- Freie Slot-Platzhalter: jeder Slot einzeln als Drop-Target -->
+          <template x-for="si in emptySlots(day)" :key="'e'+si">
+            <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
+                 @dragleave="scheduleDragOver=null"
+                 @drop.stop="me==='admin' && scheduleDrop(day, si)"
+                 :style="'grid-column:'+(si+1)+';border-radius:8px;transition:background 0.1s,border 0.1s;'
+                   + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
+                     ? 'border:1px dashed #e0ddd8;background:#f5f5f3;opacity:0.4;'
+                     : scheduleDragOver===day+'|'+si && slotDropFits(day,si)
+                       ? 'border:2px solid #1a73e8;background:#e8f0fe;'
+                       : scheduleDragOver===day+'|'+si
+                         ? 'border:2px solid #e53935;background:#fce4ec;'
+                         : 'border:1px dashed #e0ddd8;background:#faf9f7;')">
             </div>
-            <div style="text-align:center;font-size:0.7rem;color:#1a73e8;margin-top:4px">+ Neuer Tisch</div>
-          </div>
+          </template>
         </div>
 
-        <!-- Admin: Spiel hinzufügen (parallel möglich) -->
-        <div x-show="me==='admin' && gamesAvailableForDay(day).length>0">
+        <!-- Leer-State -->
+        <div x-show="Object.keys(scheduleForDay(day)).length===0 && me!=='admin'"
+             style="text-align:center;padding:16px;color:#ccc;font-size:0.82rem">
+          Noch keine Spiele für diesen Tag geplant.
+        </div>
+
+        <!-- Admin: Spiel hinzufügen -->
+        <div x-show="me==='admin' && daySlotsFree(day)>0 && gamesAvailableForDay(day).length>0">
           <select @change="if($event.target.value){scheduleAdd(day,$event.target.value);$event.target.value=''}"
                   style="width:100%;padding:7px 10px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.82rem;color:#555;background:#fff;cursor:pointer">
-            <option value="">+ Spiel hinzufügen (ggf. parallel)…</option>
+            <option value="">+ Spiel hinzufügen…</option>
             <template x-for="g in gamesAvailableForDay(day)" :key="g.id">
               <option :value="g.id"
-                      x-text="g.name+' ('+gameSlots(g)+' Slot'+(gameSlots(g)>1?'s':'')+', '+g.minPlayers+'–'+g.maxPlayers+'P)'"></option>
+                      x-text="g.name+' ('+gameSlots(g)+' Slot'+(gameSlots(g)>1?'s':'')+')'"></option>
             </template>
           </select>
         </div>
-        <div x-show="me==='admin' && gamesAvailableForDay(day).length===0 && games.length>0"
+        <div x-show="me==='admin' && daySlotsFree(day)===0"
              style="font-size:0.78rem;color:#bbb;text-align:center;padding-top:4px">
-          Alle Spiele eingeplant.
+          Tag voll — alle 8 Slots belegt.
         </div>
 
       </div>
@@ -3026,16 +2733,10 @@ function app() {
   <!-- Header: Mahlzeiten-Zähler + Festklopfen -->
   <div class="card" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px">
     <div style="font-size:0.88rem">
-      <template x-if="finalDate">
-        <span>🍽 Wir brauchen <strong x-text="mealsNeeded"></strong> Abendessen.
-          <span style="color:#888" x-text="selectedMealIds.length > 0 ? selectedMealIds.length+' ausgewählt.' : 'Noch keine Auswahl.'"></span>
-        </span>
-      </template>
-      <template x-if="!finalDate">
-        <span style="color:#aaa">🍽 Rezepte sammeln und bewerten — Auswahl möglich sobald der Termin fixiert ist.</span>
-      </template>
+      🍽 Wir brauchen <strong x-text="mealsNeeded"></strong> Abendessen.
+      <span style="color:#888" x-text="selectedMealIds.length > 0 ? selectedMealIds.length+' ausgewählt.' : 'Noch keine Auswahl.'"></span>
     </div>
-    <label x-show="me==='admin' && finalDate && selectedMealIds.length >= mealsNeeded"
+    <label x-show="me==='admin' && selectedMealIds.length >= mealsNeeded"
            style="display:flex;align-items:center;gap:7px;font-size:0.82rem;cursor:pointer;user-select:none">
       <input type="checkbox" x-model="foodLocked" style="cursor:pointer;width:15px;height:15px">
       <span>Festklopfen?</span>
@@ -3077,24 +2778,17 @@ function app() {
             </div>
             <p style="font-size:0.83rem;color:#666;margin-top:5px;line-height:1.45" x-text="recipe.description"></p>
           </div>
-          <!-- Admin-Auswahl (nur wenn Termin fixiert) -->
+          <!-- Admin-Auswahl -->
           <div x-show="me==='admin' && !foodLocked" style="flex-shrink:0">
-            <template x-if="!finalDate">
-              <span style="font-size:0.72rem;color:#ccc" title="Erst Termin fixieren">🔒</span>
-            </template>
-            <template x-if="finalDate">
-              <span>
-                <button x-show="!selectedMealIds.includes(recipe.id)"
-                        :disabled="selectedMealIds.length >= mealsNeeded"
-                        class="btn btn-sm"
-                        style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:600"
-                        @click="toggleMealSelection(recipe.id)">✓ Auswählen</button>
-                <button x-show="selectedMealIds.includes(recipe.id)"
-                        class="btn btn-sm"
-                        style="background:#10746A;color:#fff;border:1px solid #4cae4c;font-weight:600"
-                        @click="toggleMealSelection(recipe.id)">✓ Ausgewählt</button>
-              </span>
-            </template>
+            <button x-show="!selectedMealIds.includes(recipe.id)"
+                    :disabled="selectedMealIds.length >= mealsNeeded"
+                    class="btn btn-sm"
+                    style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:600"
+                    @click="toggleMealSelection(recipe.id)">✓ Auswählen</button>
+            <button x-show="selectedMealIds.includes(recipe.id)"
+                    class="btn btn-sm"
+                    style="background:#10746A;color:#fff;border:1px solid #4cae4c;font-weight:600"
+                    @click="toggleMealSelection(recipe.id)">✓ Ausgewählt</button>
           </div>
           <div x-show="selectedMealIds.includes(recipe.id) && (me!=='admin' || foodLocked)"
                style="background:#e0f5e0;color:#0f5d54;border:1px solid #a5d6a7;border-radius:6px;padding:3px 8px;font-size:0.73rem;font-weight:700;flex-shrink:0">
