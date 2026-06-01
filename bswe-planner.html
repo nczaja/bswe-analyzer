@@ -219,6 +219,42 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 
 h2 { font-size: 1.02rem; font-weight: 700; }
 [x-cloak] { display: none !important; }
+
+/* ── STATS ── */
+.stats-hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #f0ede8; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+.stats-hero-item { background: #fff; padding: 16px; text-align: center; }
+.stats-hero-num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em; }
+.stats-hero-lbl { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #aaa; margin-top: 3px; }
+@media (max-width: 540px) { .stats-hero { grid-template-columns: 1fr 1fr; } }
+
+.dropzone { border: 2px dashed #d0cdc8; border-radius: 12px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.15s; background: #fafaf8; }
+.dropzone:hover, .dropzone.dz-over { border-color: #1a1a1a; background: #f0ede8; }
+.dropzone input[type=file] { display: none; }
+
+.lb-table { width: 100%; border-collapse: collapse; }
+.lb-table th { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb; padding: 6px 10px; text-align: left; border-bottom: 1px solid #f0ede8; }
+.lb-table th.r { text-align: right; }
+.lb-table td { padding: 11px 10px; border-top: 1px solid #f5f3f0; font-size: 0.88rem; vertical-align: middle; }
+.lb-table tr:hover td { background: #fafaf8; }
+.lb-rank { font-size: 1rem; font-weight: 800; color: #ccc; width: 28px; }
+.lb-rank.gold { color: #c9a227; }
+.lb-rank.silver { color: #9e9e9e; }
+.lb-rank.bronze { color: #a0714f; }
+
+.win-track { height: 8px; border-radius: 4px; background: #f0ede8; position: relative; flex: 1; overflow: visible; }
+.win-bar { height: 100%; border-radius: 4px; background: #1a1a1a; transition: width 0.5s; }
+.win-expected { position: absolute; top: -2px; width: 2px; height: 12px; background: #bbb; border-radius: 1px; }
+.win-delta { font-size: 0.75rem; font-weight: 700; min-width: 38px; text-align: right; }
+.delta-pos { color: #2a7a2a; }
+.delta-neg { color: #d9534f; }
+.delta-neu { color: #aaa; }
+
+.game-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 5px; margin-right: 8px; vertical-align: middle; }
+
+.map-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f5f3f0; font-size: 0.85rem; }
+.map-name { font-weight: 600; flex: 1; }
+.map-arrow { color: #ccc; }
+.npc-chip { font-size: 0.68rem; background: #f0ede8; color: #888; border-radius: 20px; padding: 2px 8px; }
 </style>
 </head>
 <body x-data="app()" x-init="init()">
