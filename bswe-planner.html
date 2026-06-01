@@ -709,7 +709,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
               });
               L.marker([c.lat, c.lng], { icon }).addTo(map);
               el._lmap = map;
-              setTimeout(() => map.invalidateSize(), 50);
+              setTimeout(() => { map.invalidateSize(); setTimeout(() => map.invalidateSize(), 200); }, 100);
             } else {
               el._lmap.setView([c.lat, c.lng], 12);
             }
@@ -823,6 +823,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                     });
                     if (!editable) fp.set('clickOpens', false);
                   });
+                  $el._fpInstances = inputs;
                 ">
                   <span class="arrival-name" x-text="p.name"></span>
                   <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
@@ -833,6 +834,18 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                     <span class="arrival-lbl">Abreise</span>
                     <input type="text" class="arrival-dt" :style="(p.id!==me && me!=='admin') ? 'pointer-events:none;opacity:0.5' : 'cursor:pointer'">
                   </div>
+                  <button x-show="(p.id===me || me==='admin') && (arrivalGet(p.id,'arrive') || arrivalGet(p.id,'depart'))"
+                    @click="
+                      arrivalClear(p.id);
+                      $el.closest('.arrival-row').querySelectorAll('input.arrival-dt').forEach(inp => {
+                        if(inp._flatpickr) inp._flatpickr.clear();
+                      });
+                    "
+                    title="Zeiten löschen"
+                    style="flex-shrink:0;background:none;border:1px solid #e0ddd8;border-radius:6px;width:28px;height:28px;cursor:pointer;color:#aaa;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0;margin-top:14px"
+                    onmouseover="this.style.color='#c0392b';this.style.borderColor='#c0392b'"
+                    onmouseout="this.style.color='#aaa';this.style.borderColor='#e0ddd8'"
+                  >×</button>
                 </div>
               </template>
             </div>
@@ -857,7 +870,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                     L.marker([c.lat, c.lng], { icon }).addTo(map);
                     el._lmap = map;
                     el._lmarker = L.marker([c.lat, c.lng], { icon });
-                    setTimeout(() => map.invalidateSize(), 50);
+                    setTimeout(() => { map.invalidateSize(); setTimeout(() => map.invalidateSize(), 200); }, 100);
                   } else {
                     el._lmap.setView([c.lat, c.lng], 14);
                   }
@@ -1426,6 +1439,10 @@ function app() {
       const a = this.arrivals[pid];
       const prev = (a && typeof a === 'object') ? a : {};
       this.arrivals = { ...this.arrivals, [pid]: { ...prev, [field]: val } };
+    },
+    arrivalClear(pid) {
+      const { [pid]: _, ...rest } = this.arrivals;
+      this.arrivals = rest;
     },
 
     // ── Overview ──
