@@ -72,9 +72,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .context-banner .cb-status.archived { background: #f0ede8; color: #999; }
 .context-banner .cb-switch { margin-left: auto; color: #888; cursor: pointer; font-size: 0.75rem; text-decoration: none; }
 .context-banner .cb-switch:hover { color: #1a1a1a; }
-.event-list-card { background: #fff; border: 2px solid #e8e6e0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: border-color 0.15s; }
+.event-list-card { background: #fff; border: 2px solid #e8e6e0; border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s; }
 .event-list-card:hover { border-color: #bbb; }
-.event-list-card.selected { border-color: #1a1a1a; background: #fafaf8; }
+.event-list-card.selected.active-ev { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.event-list-card.selected.active-ev .event-list-meta { color: rgba(255,255,255,0.5); }
+.event-list-card.selected.active-ev .btn { background: #333 !important; color: #fff !important; border-color: #555 !important; }
+.event-list-card.selected:not(.active-ev) { border-color: #1a1a1a; background: #fafaf8; }
 .event-list-card.archived { opacity: 0.65; }
 
 .content { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
@@ -421,13 +424,13 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     <div>
       <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;margin-bottom:8px">In Planung</div>
       <template x-for="ev in activeEvents" :key="ev.id">
-        <div class="event-list-card" :class="{selected: ev.id===selectedEventId}" @click="selectEvent(ev.id)">
+        <div class="event-list-card active-ev" :class="{selected: ev.id===selectedEventId}" @click="selectEvent(ev.id)">
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               <span style="font-weight:700;font-size:0.95rem" x-text="ev.name"></span>
-              <span x-show="ev.id===selectedEventId" style="font-size:0.65rem;background:#1a1a1a;color:#fff;padding:1px 7px;border-radius:10px;font-weight:700">Ausgewählt</span>
+              <span x-show="ev.id===selectedEventId" style="font-size:0.65rem;background:rgba(255,255,255,0.18);color:rgba(255,255,255,0.85);padding:1px 7px;border-radius:10px;font-weight:700;border:1px solid rgba(255,255,255,0.25)">Ausgewählt</span>
             </div>
-            <div style="font-size:0.78rem;color:#888" x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></div>
+            <div class="event-list-meta" style="font-size:0.78rem;color:#888" x-text="(ev.participantIds||[]).map(id=>allPeople.find(p=>p.id===id)?.name||id).join(', ')"></div>
           </div>
           <template x-if="ev.id===selectedEventId">
             <div style="display:flex;gap:6px;flex-wrap:wrap">
