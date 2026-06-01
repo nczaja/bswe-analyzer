@@ -1304,6 +1304,7 @@ function app() {
     bgPlayers: {},
     bgPlayerMap: {},
     statsDropzone: false,
+    statsScope: 'all', // 'all' | 'event'
 
     gameSubTab: 'list',
     gameQuery: '',
@@ -2146,12 +2147,12 @@ function app() {
       // Aus Quelle entfernen
       newSch[srcDay] = newSch[srcDay].filter(s => s.id !== session.id);
 
+      // Prüfe ob Spiel ans Ende passt
+      if (targetSlot + span > 9) return;
+
       // In Ziel einfügen (mit neuem startSlot)
       const movedSession = {...session, startSlot: targetSlot};
       newSch[targetDay] = [...newSch[targetDay], movedSession];
-      for (let i = 0; i < span; i++) {
-        if (occ.has(targetSlot + i) || targetSlot + i > 8) return; // passt nicht
-      }
 
       this.schedule = newSch;
       scheduleSave(this);
@@ -2490,10 +2491,22 @@ function app() {
     clearStats(){ if(!confirm('Alle importierten Partien löschen?')) return; this.bgPlays=[]; this.bgGames={}; this.bgPlayers={}; this.bgPlayerMap={}; },
 
     // ── Stats Computed ──
+    get statsEventDates(){
+      // ISO-Datums-Strings aller Tage im Schedule des aktiven Events
+      return Object.keys(this.schedule);
+    },
+    get statsFilteredPlays(){
+      if(this.statsScope==='event'){
+        const dates=new Set(this.statsEventDates);
+        if(!dates.size) return [];
+        return this.bgPlays.filter(p=>dates.has(p.playDate));
+      }
+      return this.bgPlays;
+    },
     get statsSummary(){
-      const n=this.bgPlays.length;
-      const totalMin=this.bgPlays.reduce((s,p)=>s+(p.durationMin||0),0);
-      const games=new Set(this.bgPlays.map(p=>p.gameUuid)).size;
+      const n=this.statsFilteredPlays.length;
+      const totalMin=this.statsFilteredPlays.reduce((s,p)=>s+(p.durationMin||0),0);
+      const games=new Set(this.statsFilteredPlays.map(p=>p.gameUuid)).size;
       return{plays:n,games,hours:Math.round(totalMin/60*10)/10,avgMin:n?Math.round(totalMin/n):0};
     },
     get statsLeaderboard(){
@@ -2502,7 +2515,7 @@ function app() {
       return entries.map(([uuid,pid])=>{
         const person=this.allPeople.find(p=>p.id===pid);
         let plays=0,wins=0,expectedWins=0;
-        this.bgPlays.forEach(play=>{
+        this.statsFilteredPlays.forEach(play=>{
           const ps=play.playerScores.find(s=>s.uuid===uuid);
           if(!ps) return;
           plays++;
@@ -2525,7 +2538,7 @@ function app() {
     },
     get playsGroupedByDate(){
       const days=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
-      const sorted=[...this.bgPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
+      const sorted=[...this.statsFilteredPlays].sort((a,b)=>b.playDate.localeCompare(a.playDate));
       const groups=[];
       sorted.forEach(play=>{
         const last=groups[groups.length-1];
@@ -2616,6 +2629,15 @@ function app() {
   </div>
 
   <div x-show="bgPlays.length">
+
+    <!-- Scope-Toggle -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center">
+      <button class="btn btn-sm" :style="statsScope==='all'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':'border-color:#e0ddd8;color:#666'" @click="statsScope='all'">Alle Events</button>
+      <button class="btn btn-sm" :style="statsScope==='event'?'background:#1a1a1a;color:#fff;border-color:#1a1a1a':'border-color:#e0ddd8;color:#666'" @click="statsScope='event'">
+        <span x-text="selectedEvent.name || 'Aktives Event'"></span>
+      </button>
+      <span x-show="statsScope==='event' && !statsEventDates.length" style="font-size:0.75rem;color:#E0A019;margin-left:4px">⚠ Noch kein Spielplan</span>
+    </div>
 
     <div class="stats-hero">
       <div class="stats-hero-item">
