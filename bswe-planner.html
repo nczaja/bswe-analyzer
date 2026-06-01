@@ -2088,6 +2088,7 @@ function app() {
         added++;
       });
       if(added===0) alert('Alle Partien bereits importiert.');
+      else scheduleSave(this);
     },
     autoMatchPlayer(name){
       const lower=name.toLowerCase().trim();
@@ -2190,7 +2191,7 @@ function app() {
           <div class="map-row">
             <span class="map-name" x-text="p.name"></span>
             <span class="map-arrow">→</span>
-            <select class="inp" style="font-size:0.82rem" @change="bgPlayerMap={...bgPlayerMap,[p.uuid]:$event.target.value||null}">
+            <select class="inp" style="font-size:0.82rem" @change="bgPlayerMap={...bgPlayerMap,[p.uuid]:$event.target.value||null}; scheduleSave($data)">
               <option value="">— Nicht zuordnen —</option>
               <template x-for="person in allPeople" :key="person.id">
                 <option :value="person.id" x-text="person.name"></option>
@@ -2207,7 +2208,7 @@ function app() {
             <span class="npc-chip" x-show="player.isNpc">NPC</span>
             <span class="map-arrow" x-show="!player.isNpc">→</span>
             <select x-show="!player.isNpc" class="inp" style="font-size:0.82rem"
-              @change="bgPlayerMap={...bgPlayerMap,[uuid]:$event.target.value||null}"
+              @change="bgPlayerMap={...bgPlayerMap,[uuid]:$event.target.value||null}; scheduleSave($data)"
               :value="bgPlayerMap[uuid]||''">
               <option value="">— Nicht zuordnen —</option>
               <template x-for="person in allPeople" :key="person.id">
