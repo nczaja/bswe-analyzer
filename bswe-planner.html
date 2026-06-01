@@ -838,25 +838,15 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           </div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px">
             <div class="lbl">📅 Anreise</div>
-            <div x-init="flatpickr($el.querySelector('input'), {
-              locale: 'de', enableTime: true, time_24hr: true,
-              dateFormat: 'Y-m-d H:i', altInput: true, altFormat: 'D d.m.Y, H:i \\Uhr',
-              defaultDate: booking.checkin || null, disableMobile: true,
-              onChange(dates) { if(dates[0]) { $data.booking={...$data.booking, checkin: dates[0].getFullYear()+'-'+String(dates[0].getMonth()+1).padStart(2,'0')+'-'+String(dates[0].getDate()).padStart(2,'0')+' '+String(dates[0].getHours()).padStart(2,'0')+':'+String(dates[0].getMinutes()).padStart(2,'0')}; } else { $data.booking={...$data.booking,checkin:''}; } }
-            })">
-              <input type="text" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0;cursor:pointer" placeholder="Datum wählen…" :class="me!=='admin'?'pointer-events-none':''">
-            </div>
+            <div x-data="{get fd(){ const d=dates.find(x=>x.id===finalDateId); return d&&d.from ? new Date(d.from).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}) : null }}"
+                 style="font-size:0.9rem;font-weight:600;padding:2px 0;color:#1a1a1a"
+                 x-text="fd || '—'"></div>
           </div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px">
             <div class="lbl">📅 Abreise</div>
-            <div x-init="flatpickr($el.querySelector('input'), {
-              locale: 'de', enableTime: true, time_24hr: true,
-              dateFormat: 'Y-m-d H:i', altInput: true, altFormat: 'D d.m.Y, H:i \\Uhr',
-              defaultDate: booking.checkout || null, disableMobile: true,
-              onChange(dates) { if(dates[0]) { $data.booking={...$data.booking, checkout: dates[0].getFullYear()+'-'+String(dates[0].getMonth()+1).padStart(2,'0')+'-'+String(dates[0].getDate()).padStart(2,'0')+' '+String(dates[0].getHours()).padStart(2,'0')+':'+String(dates[0].getMinutes()).padStart(2,'0')}; } else { $data.booking={...$data.booking,checkout:''}; } }
-            })">
-              <input type="text" style="width:100%;border:none;background:transparent;font-size:0.9rem;font-weight:600;padding:2px 0;cursor:pointer" placeholder="Datum wählen…" :class="me!=='admin'?'pointer-events-none':''">
-            </div>
+            <div x-data="{get fd(){ const d=dates.find(x=>x.id===finalDateId); return d&&d.to ? new Date(d.to).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}) : null }}"
+                 style="font-size:0.9rem;font-weight:600;padding:2px 0;color:#1a1a1a"
+                 x-text="fd || '—'"></div>
           </div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">📍 Adresse</div><input type="text" x-model="booking.address" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Straße, PLZ Ort"></div>
           <div class="info-item" style="background:#fff;border:1px solid #e8e6e0;padding:10px"><div class="lbl">👤 Vermieter</div><input type="text" x-model="booking.host" style="width:100%;border:none;background:transparent;font-size:0.88rem;font-weight:600;padding:2px 0" placeholder="Name / Plattform"></div>
@@ -1737,10 +1727,7 @@ function app() {
         this.booking.host = v.url ? new URL(v.url.startsWith('http')?v.url:'https://'+v.url).hostname.replace('www.','') : (v.permanent ? 'n/a' : '');
         this.booking.keyCode = '';
         this.booking.notes = v.notes || '';
-        // Dates aus fixiertem Termin übernehmen
-        const fd = this.finalDateId ? this.dates.find(x => x.id === this.finalDateId) : null;
-        this.booking.checkin  = (fd && fd.from) ? fd.from : '';
-        this.booking.checkout = (fd && fd.to)   ? fd.to   : '';
+        // checkin/checkout ergeben sich aus finalDate — kein separates Speichern nötig
       }
     },
     unbookVenue(id){ this.venues=this.venues.map(v=>v.id===id?{...v,winner:false}:v); },
@@ -2487,7 +2474,16 @@ function app() {
       if(byFirst) return byFirst.id;
       return null;
     },
-    removePlay(uuid){ this.bgPlays=this.bgPlays.filter(p=>p.uuid!==uuid); },
+    removePlay(uuid){
+      this.bgPlays=this.bgPlays.filter(p=>p.uuid!==uuid);
+      // Spieler entfernen, die in keiner verbleibenden Partie mehr vorkommen
+      const usedUuids=new Set(this.bgPlays.flatMap(p=>p.playerScores.map(s=>s.uuid)));
+      const newPlayers={}, newMap={};
+      for(const [u,v] of Object.entries(this.bgPlayers)){ if(usedUuids.has(u)){newPlayers[u]=v;} }
+      for(const [u,v] of Object.entries(this.bgPlayerMap)){ if(usedUuids.has(u)){newMap[u]=v;} }
+      this.bgPlayers=newPlayers; this.bgPlayerMap=newMap;
+      scheduleSave(this);
+    },
     clearStats(){ if(!confirm('Alle importierten Partien löschen?')) return; this.bgPlays=[]; this.bgGames={}; this.bgPlayers={}; this.bgPlayerMap={}; },
 
     // ── Stats Computed ──
@@ -2983,7 +2979,7 @@ function app() {
               <div x-show="computeTracks(day).length > 1"
                    style="font-size:0.6rem;color:#bbb;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px"
                    x-text="'Tisch '+(trackIdx+1)"></div>
-              <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;min-height:88px;position:relative">
+              <div style="display:grid;grid-template-columns:repeat(9,1fr);grid-auto-rows:88px;gap:5px;min-height:88px;position:relative">
                 <!-- Spiel-Kacheln dieses Tracks -->
                 <template x-for="session in track" :key="session.id">
                   <div x-data="{get g(){return games.find(x=>x.id===session.gameId||x.id===+session.gameId)}, get sp(){return gameSlots(games.find(x=>x.id===session.gameId||x.id===+session.gameId))}}"
@@ -2991,7 +2987,7 @@ function app() {
                        :draggable="me==='admin'"
                        @dragstart="me==='admin' && scheduleDragStart(day, session, $event)"
                        @dragend="scheduleDragEnd()"
-                       :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
+                       :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';grid-row:1;position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
                          + (scheduleDragSession&&scheduleDragSession.id===session.id ? 'opacity:0.4;' : '')
                          + (gameHasPlayerMismatch(day,session) ? 'box-shadow:0 0 0 3px #e53935;' : '')
                          + (me==='admin' ? 'cursor:grab;' : '')">
@@ -3010,7 +3006,7 @@ function app() {
                   <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
                        @dragleave="scheduleDragOver=null"
                        @drop.stop="me==='admin' && scheduleDrop(day, si)"
-                       :style="'grid-column:'+(si+1)+';border-radius:8px;transition:background 0.1s,border 0.1s;'
+                       :style="'grid-column:'+(si+1)+';grid-row:1;border-radius:8px;transition:background 0.1s,border 0.1s;'
                          + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
                            ? 'border:1px dashed #e0ddd8;background:#f5f5f3;opacity:0.35;'
                            : scheduleDragOver===day+'|'+si && slotDropFits(day,si)
