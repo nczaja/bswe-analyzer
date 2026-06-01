@@ -2088,6 +2088,10 @@ function app() {
       const assigned = new Set(this.scheduleForDay(dateStr).map(s => isNaN(s.gameId)?s.gameId:+s.gameId));
       return this.games.filter(g => !assigned.has(g.id));
     },
+    gamesForSlot(dateStr, slotIndex) {
+      const assigned = new Set(this.scheduleForDay(dateStr).map(s => isNaN(s.gameId)?s.gameId:+s.gameId));
+      return this.games.filter(g => !assigned.has(g.id) && this.gameSlots(g) + slotIndex <= 9);
+    },
     // Warnung: Spielerzahl-Summe aller parallelen Spiele in einem Slot > verfügbare Spieler?
     slotCombinedMismatch(dateStr, slotIndex) {
       let minSum = 0;
@@ -2101,9 +2105,7 @@ function app() {
     },
 
     // ── Schedule Drag & Drop ──
-    scheduleDragSession: null, // {id, gameId, startSlot}
-    scheduleDragDay: null,
-    scheduleDragOver: null, // 'day|slotIndex'
+    scheduleOpenSlot: null, // 'day|si' or 'day|new|si' — welches Slot-Dropdown offen ist
 
     scheduleDragStart(day, session, ev) {
       this.scheduleDragSession = JSON.parse(JSON.stringify(session));
@@ -2978,27 +2980,21 @@ function app() {
         </div>
 
         <!-- Tracks: eine Zeile pro parallelem Track -->
-        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px" @click.window="scheduleOpenSlot=null">
+
           <template x-for="(track, trackIdx) in computeTracks(day)" :key="trackIdx">
-            <div style="position:relative">
-              <!-- Track-Label bei mehreren Tracks -->
+            <div>
               <div x-show="computeTracks(day).length > 1"
                    style="font-size:0.6rem;color:#bbb;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px"
                    x-text="'Tisch '+(trackIdx+1)"></div>
-              <div style="display:grid;grid-template-columns:repeat(9,1fr);grid-auto-rows:88px;gap:5px;min-height:88px;position:relative">
-                <!-- Spiel-Kacheln dieses Tracks -->
+              <div style="display:grid;grid-template-columns:repeat(9,1fr);grid-auto-rows:88px;gap:5px;min-height:88px">
+
+                <!-- Spiel-Kacheln -->
                 <template x-for="session in track" :key="session.id">
                   <div x-data="{get g(){return games.find(x=>x.id===session.gameId||x.id===+session.gameId)}, get sp(){return gameSlots(games.find(x=>x.id===session.gameId||x.id===+session.gameId))}}"
                        x-show="!!games.find(x=>x.id===session.gameId||x.id===+session.gameId)"
-                       :draggable="me==='admin'"
-                       @dragstart="me==='admin' && scheduleDragStart(day, session, $event)"
-                       @dragend="scheduleDragEnd()"
-                       @dragover.prevent="me==='admin' && scheduleDragSession && scheduleDragSession.id!==session.id && scheduleDragOverSlot(day, session.startSlot, $event)"
-                       @drop.stop="me==='admin' && scheduleDrop(day, session.startSlot)"
-                       :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';grid-row:1;position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;transition:opacity 0.15s,box-shadow 0.15s;'
-                         + (scheduleDragSession&&scheduleDragSession.id===session.id ? 'opacity:0.4;' : '')
-                         + (gameHasPlayerMismatch(day,session) ? 'box-shadow:0 0 0 3px #e53935;' : '')
-                         + (me==='admin' ? 'cursor:grab;' : '')">
+                       :style="'grid-column:'+(session.startSlot+1)+' / span '+sp+';grid-row:1;position:relative;border-radius:8px;overflow:hidden;background:#f0ede8;'
+                         + (gameHasPlayerMismatch(day,session) ? 'box-shadow:0 0 0 3px #e53935;' : '')">
                     <img :src="g&&g.thumbnail" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
                     <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 55%);pointer-events:none"></div>
                     <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 7px;pointer-events:none">
@@ -3009,61 +3005,85 @@ function app() {
                             style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:none;font-size:0.75rem;cursor:pointer;line-height:1;z-index:2">×</button>
                   </div>
                 </template>
-                <!-- Freie Drop-Slots für diesen Track -->
+
+                <!-- Freie Slots: Klick zum Hinzufügen -->
                 <template x-for="si in Array.from({length:9},(_,i)=>i).filter(i=>!occupiedSlotsOnTrack(track).has(i))" :key="'e'+si">
-                  <div @dragover="me==='admin' && scheduleDragOverSlot(day, si, $event)"
-                       @dragleave.self="scheduleDragOver=null"
-                       @drop.stop="me==='admin' && scheduleDrop(day, si)"
-                       :style="'grid-column:'+(si+1)+';grid-row:1;border-radius:8px;transition:background 0.1s,border 0.1s;'
-                         + ((si < dayFirstSlot(day) || si > dayLastSlot(day))
-                           ? 'border:1px dashed #e0ddd8;background:#f5f5f3;opacity:0.35;'
-                           : scheduleDragOver===day+'|'+si && slotDropFits(day,si)
-                             ? 'border:2px solid #1a73e8;background:#e8f0fe;'
-                             : scheduleDragOver===day+'|'+si
-                               ? 'border:2px solid #e53935;background:#fce4ec;'
-                               : 'border:1px dashed #e0ddd8;background:#faf9f7;')">
+                  <div :style="'grid-column:'+(si+1)+';grid-row:1;position:relative;'
+                         + ((si < dayFirstSlot(day) || si > dayLastSlot(day)) ? 'opacity:0.35;' : '')">
+                    <template x-if="me==='admin'">
+                      <div style="height:100%">
+                        <button @click.stop="scheduleOpenSlot = scheduleOpenSlot===(day+'|'+trackIdx+'|'+si) ? null : (day+'|'+trackIdx+'|'+si)"
+                                style="width:100%;height:100%;border-radius:8px;border:1px dashed #d0cdc8;background:transparent;cursor:pointer;color:#ccc;font-size:1.3rem;line-height:1;transition:all 0.1s"
+                                :style="scheduleOpenSlot===(day+'|'+trackIdx+'|'+si) ? 'border-color:#1a73e8;background:#f0f6ff;color:#1a73e8;' : ''">+</button>
+                        <div x-show="scheduleOpenSlot===(day+'|'+trackIdx+'|'+si)"
+                             @click.stop
+                             style="position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:#fff;border:1px solid #e0ddd8;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.13);min-width:190px;overflow:hidden">
+                          <div style="padding:6px 10px;font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;border-bottom:1px solid #f0ede8">Spiel für Slot <span x-text="si+1"></span></div>
+                          <div style="max-height:220px;overflow-y:auto">
+                            <template x-for="g in gamesForSlot(day, si)" :key="g.id">
+                              <button @click.stop="scheduleAddAtSlot(day, si, g.id); scheduleOpenSlot=null"
+                                      style="display:block;width:100%;text-align:left;padding:8px 12px;border:none;border-bottom:1px solid #f5f4f2;background:transparent;cursor:pointer;font-size:0.8rem"
+                                      onmouseover="this.style.background='#f8f6f3'" onmouseout="this.style.background='transparent'">
+                                <span x-text="g.name"></span>
+                                <span style="font-size:0.68rem;color:#aaa;margin-left:5px" x-text="gameSlots(g)+'Slot·'+g.minPlayers+'–'+g.maxPlayers+'P'"></span>
+                              </button>
+                            </template>
+                            <div x-show="gamesForSlot(day, si).length===0" style="padding:10px 12px;font-size:0.78rem;color:#bbb;text-align:center">Kein Spiel passt hier.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                    <template x-if="me!=='admin'">
+                      <div style="height:100%;border:1px dashed #eee;border-radius:8px"></div>
+                    </template>
                   </div>
                 </template>
+
               </div>
             </div>
           </template>
 
-          <!-- Kein Spiel geplant -->
+          <!-- Kein Spiel geplant (non-admin) -->
           <div x-show="computeTracks(day).length===0 && me!=='admin'"
                style="text-align:center;padding:24px;color:#ccc;font-size:0.82rem;border:1px dashed #e8e6e0;border-radius:8px">
             Noch keine Spiele für diesen Tag geplant.
           </div>
 
-          <!-- Leere Vorlage für Drag-Drop auf neuen Track -->
-          <div x-show="me==='admin' && scheduleDragSession && scheduleDragDay!==day"
-               style="border:2px dashed #1a73e8;border-radius:8px;padding:8px;opacity:0.6">
-            <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;height:44px">
+          <!-- Admin: Neuen Tisch starten -->
+          <div x-show="me==='admin' && gamesAvailableForDay(day).length>0"
+               style="border:1px dashed #c5d8fa;border-radius:8px;background:#f8f9ff;padding:6px 6px 4px">
+            <div style="font-size:0.62rem;color:#7ba7e8;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;text-align:center">+ Neuer Tisch</div>
+            <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px;height:40px">
               <template x-for="si in Array.from({length:9},(_,i)=>i)" :key="'new'+si">
-                <div @dragover="scheduleDragOverSlot(day, si, $event)"
-                     @dragleave.self="scheduleDragOver=null"
-                     @drop.stop="scheduleDrop(day, si)"
-                     :style="'grid-column:'+(si+1)+';border-radius:6px;background:'+(scheduleDragOver===day+'|'+si?'#e8f0fe':'#f0f4ff')+';transition:background 0.1s'">
+                <div style="position:relative">
+                  <button @click.stop="scheduleOpenSlot = scheduleOpenSlot===(day+'|new|'+si) ? null : (day+'|new|'+si)"
+                          :disabled="gamesForSlot(day, si).length===0"
+                          style="width:100%;height:100%;border-radius:6px;border:1px dashed #c5d8fa;background:transparent;cursor:pointer;color:#a0bcf0;font-size:1.1rem;line-height:1;transition:all 0.1s"
+                          :style="gamesForSlot(day,si).length===0 ? 'opacity:0.25;cursor:default;' : scheduleOpenSlot===(day+'|new|'+si) ? 'border-color:#1a73e8;background:#e8f0fe;color:#1a73e8;' : ''">+</button>
+                  <div x-show="scheduleOpenSlot===(day+'|new|'+si)"
+                       @click.stop
+                       style="position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:#fff;border:1px solid #e0ddd8;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.13);min-width:190px;overflow:hidden">
+                    <div style="padding:6px 10px;font-size:0.63rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#aaa;border-bottom:1px solid #f0ede8">Neuer Tisch · Slot <span x-text="si+1"></span></div>
+                    <div style="max-height:220px;overflow-y:auto">
+                      <template x-for="g in gamesForSlot(day, si)" :key="g.id">
+                        <button @click.stop="scheduleAddAtSlot(day, si, g.id); scheduleOpenSlot=null"
+                                style="display:block;width:100%;text-align:left;padding:8px 12px;border:none;border-bottom:1px solid #f5f4f2;background:transparent;cursor:pointer;font-size:0.8rem"
+                                onmouseover="this.style.background='#f8f6f3'" onmouseout="this.style.background='transparent'">
+                          <span x-text="g.name"></span>
+                          <span style="font-size:0.68rem;color:#aaa;margin-left:5px" x-text="gameSlots(g)+'Slot·'+g.minPlayers+'–'+g.maxPlayers+'P'"></span>
+                        </button>
+                      </template>
+                    </div>
+                  </div>
                 </div>
               </template>
             </div>
-            <div style="text-align:center;font-size:0.7rem;color:#1a73e8;margin-top:4px">+ Neuer Tisch</div>
           </div>
-        </div>
 
-        <!-- Admin: Spiel hinzufügen (parallel möglich) -->
-        <div x-show="me==='admin' && gamesAvailableForDay(day).length>0">
-          <select @change="if($event.target.value){scheduleAdd(day,$event.target.value);$event.target.value=''}"
-                  style="width:100%;padding:7px 10px;border:1px solid #e0ddd8;border-radius:8px;font-size:0.82rem;color:#555;background:#fff;cursor:pointer">
-            <option value="">+ Spiel hinzufügen (ggf. parallel)…</option>
-            <template x-for="g in gamesAvailableForDay(day)" :key="g.id">
-              <option :value="g.id"
-                      x-text="g.name+' ('+gameSlots(g)+' Slot'+(gameSlots(g)>1?'s':'')+', '+g.minPlayers+'–'+g.maxPlayers+'P)'"></option>
-            </template>
-          </select>
-        </div>
-        <div x-show="me==='admin' && gamesAvailableForDay(day).length===0 && games.length>0"
-             style="font-size:0.78rem;color:#bbb;text-align:center;padding-top:4px">
-          Alle Spiele eingeplant.
+          <div x-show="me==='admin' && gamesAvailableForDay(day).length===0 && games.length>0"
+               style="font-size:0.78rem;color:#bbb;text-align:center;padding-top:4px">
+            Alle Spiele eingeplant.
+          </div>
         </div>
 
       </div>
