@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BSWE Planner</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" defer></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,12 +42,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .app-header span { font-size: 0.82rem; opacity: 0.45; }
 
 .identity-bar { background: #fff; border-bottom: 1px solid #e8e6e0; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: background 0.2s; }
-.identity-bar.admin-mode { background: #fff6df; border-bottom-color: #E0A019; }
+.identity-bar.admin-mode { background: #fffbeb; border-bottom-color: #e8b84b; }
 .identity-bar label { font-size: 0.78rem; color: #888; }
 .identity-bar .identity-name { font-size: 0.9rem; font-weight: 700; color: #1a1a1a; }
 .identity-bar input[type=text] { font-size: 0.84rem; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; background: #fff; }
 .identity-sep { color: #e0ddd8; margin: 0 2px; }
-.admin-badge { background: #fff6df; color: #8a5800; border: 1px solid #E0A019; border-radius: 6px; padding: 3px 9px; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.03em; }
+.admin-badge { background: #fff3cd; color: #8a5800; border: 1px solid #e8b84b; border-radius: 6px; padding: 3px 9px; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.03em; }
 .switch-btn { font-size: 0.75rem; color: #aaa; background: none; border: 1px solid #e0ddd8; border-radius: 6px; padding: 3px 9px; cursor: pointer; }
 .switch-btn:hover { border-color: #aaa; color: #555; }
 
@@ -77,14 +74,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .vote-btn:hover:not(:disabled) { transform: scale(1.18); }
 .vote-btn:disabled { opacity: 0.4; cursor: default; }
 .vote-btn.yes { background: #e0f5e0; border-color: #6abf6a; }
-.vote-btn.maybe { background: #fff5d6; border-color: #E0A019; }
+.vote-btn.maybe { background: #fff5d6; border-color: #e8b84b; }
 .vote-btn.no { background: #ffe0e0; border-color: #e06060; }
-.vote-btn.active-yes { background: #10746A; border-color: #4cae4c; color: #fff; }
+.vote-btn.active-yes { background: #5cb85c; border-color: #4cae4c; color: #fff; }
 .vote-btn.active-maybe { background: #f0ad4e; border-color: #eea236; }
-.vote-btn.active-no { background: #CF4729; border-color: #c9302c; color: #fff; }
+.vote-btn.active-no { background: #d9534f; border-color: #c9302c; color: #fff; }
 .date-range { font-size: 0.88rem; font-weight: 600; }
 .date-sub { font-size: 0.7rem; color: #aaa; margin-top: 1px; }
-.vorbehalt-tag { font-size: 0.66rem; color: #a07000; background: #fff6df; border-radius: 4px; padding: 1px 5px; }
+.vorbehalt-tag { font-size: 0.66rem; color: #a07000; background: #fff3cd; border-radius: 4px; padding: 1px 5px; }
 .vote-summary { display: flex; gap: 4px; }
 .vs-pill { font-size: 0.68rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
 .vs-yes { background: #e0f5e0; color: #2d7a2d; }
@@ -92,7 +89,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .vs-no { background: #ffe0e0; color: #a33; }
 
 .badge { font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.04em; }
-.badge-green { background: #e0f5e0; color: #0f5d54; }
+.badge-green { background: #e0f5e0; color: #2a7a2a; }
 .badge-yellow { background: #fff5d6; color: #8a6000; }
 .badge-blue { background: #e0eeff; color: #2a5aaa; }
 .badge-red { background: #ffe0e0; color: #a33; }
@@ -117,7 +114,7 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 
 /* Venue cards */
 .venue-card { border: 1px solid #e8e6e0; border-radius: 12px; overflow: hidden; margin-bottom: 14px; background: #fff; }
-.venue-card.winner { border-color: #10746A; }
+.venue-card.winner { border-color: #5cb85c; }
 .venue-photos { display: flex; gap: 6px; overflow-x: auto; padding: 14px 16px 10px; background: #f8f7f4; }
 .venue-photo { width: 140px; height: 90px; object-fit: cover; border-radius: 7px; flex-shrink: 0; cursor: pointer; transition: opacity 0.15s; }
 .venue-photo:hover { opacity: 0.88; }
@@ -128,7 +125,7 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .venue-link:hover { text-decoration: underline; }
 .venue-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
 .pill { font-size: 0.73rem; border-radius: 6px; padding: 3px 9px; background: #f0ede8; color: #444; }
-.pill.good { background: #e0f5e0; color: #0f5d54; }
+.pill.good { background: #e0f5e0; color: #2a7a2a; }
 .pill.bad { background: #ffe0e0; color: #a33; }
 .pill.info { background: #e0eeff; color: #2a5aaa; }
 .rooms-grid { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -136,8 +133,8 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .venue-votes { border-top: 1px solid #f0ede8; padding: 12px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .v-vote-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 20px; border: 2px solid #e8e6e0; cursor: pointer; font-size: 0.79rem; font-weight: 600; transition: all 0.12s; background: #fff; }
 .v-vote-btn:hover { border-color: #bbb; }
-.v-vote-btn.active-up { background: #e0f5e0; border-color: #10746A; color: #0f5d54; }
-.v-vote-btn.active-down { background: #ffe0e0; border-color: #CF4729; color: #a33; }
+.v-vote-btn.active-up { background: #e0f5e0; border-color: #5cb85c; color: #2a7a2a; }
+.v-vote-btn.active-down { background: #ffe0e0; border-color: #d9534f; color: #a33; }
 .v-vote-btn.active-meh { background: #f0ede8; border-color: #ccc; color: #555; }
 .vote-avatars { display: flex; gap: 8px; flex-wrap: wrap; margin-left: 8px; }
 .vote-avatar { font-size: 0.72rem; color: #888; }
@@ -191,7 +188,7 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .cat-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
 .cat-einkauf   { background: #e0eeff; color: #2a5aaa; }
 .cat-anreise   { background: #f0ede8; color: #666; }
-.cat-haus      { background: #e0f5e0; color: #0f5d54; }
+.cat-haus      { background: #e0f5e0; color: #2a7a2a; }
 .cat-sonstiges { background: #fff5d6; color: #8a6000; }
 .settlement-table { width: 100%; border-collapse: collapse; }
 .settlement-table th { font-size: 0.7rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 12px; text-align: left; }
@@ -202,8 +199,8 @@ input:focus, textarea:focus, select.inp:focus { outline: none; border-color: #1a
 .balance-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; background: #fafaf8; border: 1px solid #f0ede8; }
 .balance-name { font-size: 0.88rem; font-weight: 600; }
 .balance-val { font-size: 1rem; font-weight: 700; }
-.balance-pos { color: #0f5d54; }
-.balance-neg { color: #CF4729; }
+.balance-pos { color: #2a7a2a; }
+.balance-neg { color: #d9534f; }
 .balance-zero { color: #aaa; }
 
 /* Participant toggles */
@@ -248,8 +245,8 @@ h2 { font-size: 1.02rem; font-weight: 700; }
 .win-bar { height: 100%; border-radius: 4px; background: #1a1a1a; transition: width 0.5s; }
 .win-expected { position: absolute; top: -2px; width: 2px; height: 12px; background: #bbb; border-radius: 1px; }
 .win-delta { font-size: 0.75rem; font-weight: 700; min-width: 38px; text-align: right; }
-.delta-pos { color: #0f5d54; }
-.delta-neg { color: #CF4729; }
+.delta-pos { color: #2a7a2a; }
+.delta-neg { color: #d9534f; }
 .delta-neu { color: #aaa; }
 
 .game-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 5px; margin-right: 8px; vertical-align: middle; }
@@ -271,7 +268,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
   <div style="text-align:center;margin-top:24px">
     <input type="password" x-model="gateInput" @keydown.enter="checkGate()"
       placeholder="Passwort" style="width:200px;padding:10px 14px;border-radius:8px;border:1.5px solid #444;background:#1a1a2e;color:#fff;font-size:1rem;text-align:center;outline:none">
-    <div x-show="gateError" style="color:#CF4729;font-size:0.85rem;margin-top:8px">Falsches Passwort</div>
+    <div x-show="gateError" style="color:#e74c3c;font-size:0.85rem;margin-top:8px">Falsches Passwort</div>
     <button class="landing-btn" @click="checkGate()" style="margin-top:16px;display:block;margin-left:auto;margin-right:auto">Weiter →</button>
   </div>
 </div>
@@ -407,7 +404,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
       <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='venues'">🏡 Unterkünfte</button>
       <button class="btn btn-sm" style="background:#333;color:#fff;border:1px solid #555" @click="tab='settlement'">💶 Abrechnung</button>
       <button x-show="me==='admin' && !editingEventName" class="btn btn-sm" style="background:#f0ede8;color:#555;border:1px solid #ddd" @click="editingEventName=true;tempEventName=currentEvent.name">✏️ Umbenennen</button>
-      <button x-show="me==='admin'" class="btn btn-sm" style="background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78;margin-left:8px" @click="showDeleteConfirm=true">🗑 Löschen</button>
+      <button x-show="me==='admin'" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin-left:8px" @click="showDeleteConfirm=true">🗑 Löschen</button>
     </div>
   </div>
 
@@ -523,7 +520,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         </thead>
         <tbody>
           <template x-for="d in sortedDates" :key="d.id">
-            <tr :style="finalDateId===d.id?'background:#eef6f0':''">
+            <tr :style="finalDateId===d.id?'background:#f0fdf4':''">
               <td style="padding-left:20px">
                 <div class="date-range" x-text="d.label"></div>
                 <div class="date-sub" x-text="d.sub"></div>
@@ -548,10 +545,10 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                 </div>
                 <div style="margin-top:5px">
                   <!-- Confirmed badge -->
-                  <span x-show="finalDateId===d.id" style="font-size:0.72rem;font-weight:700;color:#0f5d54;background:#dff0e7;padding:2px 7px;border-radius:99px;display:inline-block">📌 Fixiert</span>
+                  <span x-show="finalDateId===d.id" style="font-size:0.72rem;font-weight:700;color:#15803d;background:#dcfce7;padding:2px 7px;border-radius:99px;display:inline-block">📌 Fixiert</span>
                   <!-- Admin: set/unset button -->
-                  <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#eef6f0;color:#0f5d54;border:1px solid #10746A" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
-                  <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
+                  <button x-show="me==='admin' && finalDateId!==d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#f0fdf4;color:#15803d;border:1px solid #86efac" @click="finalDateId=d.id;finalDate=d.label">Termin fixieren</button>
+                  <button x-show="me==='admin' && finalDateId===d.id" class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="finalDateId='';finalDate=''">Fixierung aufheben</button>
                 </div>
               </td>
             </tr>
@@ -584,7 +581,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           <span x-show="analyzing">Lädt...</span>
         </button>
       </div>
-      <div x-show="dupWarning" style="margin-top:8px;padding:8px 12px;background:#fff6df;border:1px solid #E0A019;border-radius:7px;font-size:0.82rem;color:#6b5208">
+      <div x-show="dupWarning" style="margin-top:8px;padding:8px 12px;background:#fff3cd;border:1px solid #e8b84b;border-radius:7px;font-size:0.82rem;color:#7a5800">
         ⚠️ Bereits in der Liste: <strong x-text="dupWarning"></strong>
       </div>
       <div x-show="!dupWarning" style="font-size:0.75rem;color:#bbb;margin-top:7px">Funktioniert mit traum-ferienwohnungen.de, lodgify, airbnb, booking.com und mehr.</div>
@@ -636,7 +633,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
             <div x-show="v.price" style="font-size:1.1rem;font-weight:700" x-text="v.price+'€'"></div>
             <div x-show="!v.price" style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
               <input type="number" placeholder="Preis €" min="0"
-                style="width:80px;font-size:0.88rem;font-weight:700;text-align:right;border:1px dashed #E0A019;border-radius:6px;padding:3px 6px;background:#fff6df"
+                style="width:80px;font-size:0.88rem;font-weight:700;text-align:right;border:1px dashed #e0b84b;border-radius:6px;padding:3px 6px;background:#fffbeb"
                 @change="venues=venues.map(x=>x.id===v.id?{...x,price:Number($event.target.value)||null}:x)">
             </div>
             <div style="font-size:0.68rem;color:#aaa">gesamt</div>
@@ -659,8 +656,8 @@ h2 { font-size: 1.02rem; font-weight: 700; }
           <div class="travel-box">
             <div class="tlabel">🗺 Anreise der Gruppe (Luftlinie)</div>
             <div class="travel-items">
-              <span><span style="color:#CF4729">●</span> Weiteste: <strong x-text="venueTravelData(v.id).max.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).max.km+' km)'"></span></span>
-              <span><span style="color:#10746A">●</span> Kürzeste: <strong x-text="venueTravelData(v.id).min.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).min.km+' km)'"></span></span>
+              <span><span style="color:#d9534f">●</span> Weiteste: <strong x-text="venueTravelData(v.id).max.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).max.km+' km)'"></span></span>
+              <span><span style="color:#5cb85c">●</span> Kürzeste: <strong x-text="venueTravelData(v.id).min.name"></strong> <span style="color:#aaa" x-text="'('+venueTravelData(v.id).min.km+' km)'"></span></span>
               <span>∑ <strong x-text="venueTravelData(v.id).total+' km'"></strong> gesamt</span>
             </div>
           </div>
@@ -697,9 +694,9 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='meh'?'active-meh':''" @click="setVenueVote(v.id,me,'meh')">🤷 Egal</button>
         <button class="v-vote-btn" :class="getVenueVote(v.id,me)==='down'?'active-down':''" @click="setVenueVote(v.id,me,'down')">👎 Dagegen</button>
         <div style="flex:1"></div>
-        <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:700" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
+        <button x-show="!v.winner" class="btn btn-sm" style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:700" @click="bookVenue(v.id)">✅ Als gebucht markieren</button>
         <button x-show="v.winner" class="btn btn-sm btn-ghost" @click="unbookVenue(v.id)">Buchung aufheben</button>
-        <button x-show="me==='admin' && !v.permanent" class="btn btn-sm" style="background:#fbe3dd;color:#9c2f17;border:1px solid #cf8a78" @click="venues=venues.filter(x=>x.id!==v.id)">🗑</button>
+        <button x-show="me==='admin' && !v.permanent" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5" @click="venues=venues.filter(x=>x.id!==v.id)">🗑</button>
         <div class="vote-avatars">
           <template x-for="p in eventParticipants" :key="p.id">
             <span class="vote-avatar" :title="p.name"><span x-text="p.short+' '"></span><span x-text="venueVoteEmoji(v.id,p.id)"></span></span>
@@ -734,7 +731,7 @@ h2 { font-size: 1.02rem; font-weight: 700; }
         <div class="info-grid">
           <div class="info-item"><div class="lbl">💶 Preis</div><div class="val" x-text="(bookedVenue&&bookedVenue.price)?bookedVenue.price+'€ gesamt':'—'"></div></div>
           <div class="info-item"><div class="lbl">🛏 Schlafplätze</div><div class="val" x-text="(bookedVenue&&bookedVenue.beds)?bookedVenue.beds+' Personen':'—'"></div></div>
-          <div class="info-item" style="grid-column:1/-1;background:#fff6df;border:1px solid #E0A019;padding:12px">
+          <div class="info-item" style="grid-column:1/-1;background:#fff3cd;border:1px solid #e8b84b;padding:12px">
             <div class="lbl" style="color:#8a6000">🔑 Schlüsselcode</div>
             <input type="text" x-model="booking.keyCode" style="width:100%;border:none;background:transparent;font-family:'SF Mono','Fira Code',monospace;font-size:1.5rem;letter-spacing:0.12em;font-weight:700;padding:2px 0" placeholder="Code eintragen">
           </div>
@@ -892,12 +889,12 @@ h2 { font-size: 1.02rem; font-weight: 700; }
                 <!-- Sender confirmation -->
                 <label class="settled-check" x-show="t.from===me||me==='admin'" style="cursor:pointer">
                   <input type="checkbox" x-model="t.doneSender">
-                  <span :style="t.doneSender?'color:#0f5d54;font-weight:700':''">📤 Überwiesen</span>
+                  <span :style="t.doneSender?'color:#2a7a2a;font-weight:700':''">📤 Überwiesen</span>
                 </label>
                 <!-- Receiver confirmation -->
                 <label class="settled-check" x-show="t.to===me||me==='admin'" style="cursor:pointer">
                   <input type="checkbox" x-model="t.doneReceiver">
-                  <span :style="t.doneReceiver?'color:#0f5d54;font-weight:700':''">📥 Empfangen</span>
+                  <span :style="t.doneReceiver?'color:#2a7a2a;font-weight:700':''">📥 Empfangen</span>
                 </label>
                 <!-- Status for uninvolved viewers -->
                 <span x-show="t.from!==me&&t.to!==me&&me!=='admin'" style="color:#aaa">
@@ -2169,7 +2166,7 @@ function app() {
       <h2>📥 BGStats-Import</h2>
       <div style="display:flex;gap:8px;align-items:center">
         <span x-show="bgPlays.length" style="font-size:0.78rem;color:#aaa" x-text="bgPlays.length+' Partien importiert'"></span>
-        <button x-show="bgPlays.length" class="btn btn-sm btn-ghost" style="color:#CF4729;border-color:#cf8a78" @click="clearStats()">🗑 Alles löschen</button>
+        <button x-show="bgPlays.length" class="btn btn-sm btn-ghost" style="color:#d9534f;border-color:#fca5a5" @click="clearStats()">🗑 Alles löschen</button>
       </div>
     </div>
     <div class="card-body">
@@ -2184,7 +2181,7 @@ function app() {
           <div style="font-size:0.78rem;color:#aaa">oder klicken zum Auswählen · <strong>.bgsplay</strong> · einzeln oder im Batch</div>
         </div>
       </label>
-      <div x-show="statsUnmapped.length" style="margin-top:14px;padding:12px 16px;background:#fff6df;border:1px solid #E0A019;border-radius:8px">
+      <div x-show="statsUnmapped.length" style="margin-top:14px;padding:12px 16px;background:#fffbeb;border:1px solid #e8b84b;border-radius:8px">
         <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a6000;margin-bottom:10px">⚠ Unbekannte Spieler — bitte zuordnen</div>
         <template x-for="p in statsUnmapped" :key="p.uuid">
           <div class="map-row">
@@ -2648,7 +2645,7 @@ function app() {
   <!-- Recipe cards -->
   <template x-for="recipe in sortedFilteredRecipes" :key="recipe.id">
     <div class="card" style="margin-bottom:10px"
-         :style="selectedMealIds.includes(recipe.id)?'border-color:#10746A;border-width:2px':''">
+         :style="selectedMealIds.includes(recipe.id)?'border-color:#5cb85c;border-width:2px':''">
       <div style="padding:16px 18px">
         <!-- Name + badges + select button -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
@@ -2666,15 +2663,15 @@ function app() {
             <button x-show="!selectedMealIds.includes(recipe.id)"
                     :disabled="selectedMealIds.length >= mealsNeeded"
                     class="btn btn-sm"
-                    style="background:#e0f5e0;color:#0f5d54;border:1px solid #10746A;font-weight:600"
+                    style="background:#e0f5e0;color:#2a7a2a;border:1px solid #5cb85c;font-weight:600"
                     @click="toggleMealSelection(recipe.id)">✓ Auswählen</button>
             <button x-show="selectedMealIds.includes(recipe.id)"
                     class="btn btn-sm"
-                    style="background:#10746A;color:#fff;border:1px solid #4cae4c;font-weight:600"
+                    style="background:#5cb85c;color:#fff;border:1px solid #4cae4c;font-weight:600"
                     @click="toggleMealSelection(recipe.id)">✓ Ausgewählt</button>
           </div>
           <div x-show="selectedMealIds.includes(recipe.id) && (me!=='admin' || foodLocked)"
-               style="background:#e0f5e0;color:#0f5d54;border:1px solid #a5d6a7;border-radius:6px;padding:3px 8px;font-size:0.73rem;font-weight:700;flex-shrink:0">
+               style="background:#e0f5e0;color:#2a7a2a;border:1px solid #a5d6a7;border-radius:6px;padding:3px 8px;font-size:0.73rem;font-weight:700;flex-shrink:0">
             ✓ Dabei
           </div>
         </div>
@@ -2844,10 +2841,10 @@ function app() {
       Das Event <strong x-text="currentEvent.name||'(unbenannt)'"></strong> wird unwiderruflich gelöscht –
       inklusive aller Ausgaben, Abstimmungen und Venue-Auswahl.
     </p>
-    <p style="font-size:0.82rem;color:#9c2f17;margin-bottom:20px">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+    <p style="font-size:0.82rem;color:#b91c1c;margin-bottom:20px">Diese Aktion kann nicht rückgängig gemacht werden.</p>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-sm btn-ghost" @click="showDeleteConfirm=false">Abbrechen</button>
-      <button class="btn btn-sm" style="background:#9c2f17;color:#fff" @click="deleteEvent()">Ja, löschen</button>
+      <button class="btn btn-sm" style="background:#b91c1c;color:#fff" @click="deleteEvent()">Ja, löschen</button>
     </div>
   </div>
 </div>
