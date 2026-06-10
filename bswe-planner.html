@@ -1197,12 +1197,16 @@ function defaultEventData(overrides = {}) {
 }
 
 let _saveTimer = null;
+let _dataLoadedFromRemote = false; // Guard: never overwrite Supabase before remote data was confirmed loaded
 function scheduleSave(appState) {
+  if (!_dataLoadedFromRemote) return; // Safety: don't save default state over real data
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     const snapshot = {};
     PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
     supabasePut(snapshot);
+    // Also keep a localStorage backup (last known good state)
+    try { localStorage.setItem('bswe_backup', JSON.stringify({ts: new Date().toISOString(), data: snapshot})); } catch(e) {}
   }, 1500);
 }
 
@@ -1424,6 +1428,7 @@ function app() {
         if (remote.events) {
           // New format: load directly
           PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
+          _dataLoadedFromRemote = true;
         } else if (remote.currentEvent) {
           // Old format: migrate to events[] structure
           const eventId = remote.currentEvent.id || 'current';
@@ -1477,13 +1482,28 @@ function app() {
           if (remote.bgGames)    this.bgGames    = remote.bgGames;
           if (remote.bgPlayers)  this.bgPlayers  = remote.bgPlayers;
           if (remote.bgPlayerMap) this.bgPlayerMap = remote.bgPlayerMap;
-          scheduleSave(this);
+          _dataLoadedFromRemote = true;
+          scheduleSave(this); // migrate old format → save in new format
         }
+      } else {
+        // Supabase returned null (network error or empty). Never overwrite with defaults.
+        // Try localStorage backup as fallback.
+        try {
+          const bk = localStorage.getItem('bswe_backup');
+          if (bk) {
+            const {data} = JSON.parse(bk);
+            if (data && data.events) {
+              PERSIST_KEYS.forEach(k => { if (data[k] !== undefined) this[k] = data[k]; });
+              console.warn('Supabase unavailable — restored from localStorage backup');
+            }
+          }
+        } catch(e) {}
+        _dataLoadedFromRemote = true; // allow saves even without remote (offline mode)
       }
-      // Mock-Daten: games auffüllen wenn leer
+      // Mock-Daten: games auffüllen wenn leer (nur nach erfolgreichem Load)
       if (!this.games || this.games.length === 0) {
         this.games = defaultEventData().games;
-        scheduleSave(this);
+        // scheduleSave handled by $watch below
       }
 
       // Lokale Identity wiederherstellen und validieren
