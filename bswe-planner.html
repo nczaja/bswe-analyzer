@@ -449,12 +449,12 @@ h2 { font-size: 1.02rem; font-weight: 700; }
               </template>
             </div>
           </template>
-        </div>
-        <!-- Inline rename form -->
-        <div x-show="editingEventName && ev.id===selectedEventId" style="margin:-4px 0 8px 0;padding:10px 16px;background:#f5f3f0;border-radius:8px;display:flex;gap:8px;align-items:center">
-          <input type="text" x-model="tempEventName" style="font-size:0.95rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px;flex:1;max-width:280px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
-          <button class="btn btn-sm btn-primary" @click="currentEvent={...currentEvent,name:tempEventName};editingEventName=false">OK</button>
-          <button class="btn btn-sm btn-ghost" @click="editingEventName=false">✕</button>
+          <!-- Inline rename form -->
+          <div x-show="editingEventName && ev.id===selectedEventId" @click.stop style="width:100%;margin-top:10px;padding:10px 4px 2px;display:flex;gap:8px;align-items:center">
+            <input type="text" x-model="tempEventName" style="font-size:0.95rem;font-weight:700;border:1px solid #ccc;border-radius:6px;padding:4px 8px;flex:1;max-width:280px" @keydown.enter="currentEvent={...currentEvent,name:tempEventName};editingEventName=false" @keydown.escape="editingEventName=false">
+            <button class="btn btn-sm btn-primary" @click.stop="currentEvent={...currentEvent,name:tempEventName};editingEventName=false">OK</button>
+            <button class="btn btn-sm btn-ghost" @click.stop="editingEventName=false">✕</button>
+          </div>
         </div>
       </template>
     </div>
