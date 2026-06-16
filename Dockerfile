@@ -14,4 +14,6 @@ COPY . .
 
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
+EXPOSE 8080
+
 CMD ["python", "main.py"]
