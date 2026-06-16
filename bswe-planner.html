@@ -1183,13 +1183,7 @@ function defaultEventData(overrides = {}) {
     manualShoppingItems: [],
     mealCategoryPersonIds: {},
     shoppingItemCategories: {},
-    games: [
-      { id: 237182, name: 'Root', thumbnail: 'https://ledergames.com/cdn/shop/products/1-RootGameBox-Edit-Web.png?v=1595294735', minPlayers: 2, maxPlayers: 4, minPlaytime: 60, maxPlaytime: 90, durationCat: 'mittel', rating: '8.0', description: 'Ein asymmetrisches Waldkriegsspiel um Herrschaft und Kontrolle.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 291572, name: 'Oath: Chronicles of Empire and Exile', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/7/77/Oath_Chronicles_of_Empire_and_Exile_box_cover.png', minPlayers: 1, maxPlayers: 6, minPlaytime: 90, maxPlaytime: 150, durationCat: 'lang', rating: '8.2', description: 'Episches Legacy-ähnliches Spiel um Macht, Exil und den Lauf der Geschichte.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 382118, name: 'Arcs: The Blighted Reach', thumbnail: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Arcs_game_box.png', minPlayers: 2, maxPlayers: 4, minPlaytime: 120, maxPlaytime: 240, durationCat: 'lang', rating: '8.4', description: 'Sci-Fi-Politikspiel mit einzigartiger Kartenmechanik von Leder Games.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 396790, name: 'Molly House', thumbnail: 'https://wehrlegig.com/cdn/shop/files/Molly_House_Box_Transparent_be6f6552-b050-4dde-b096-3f4ae1a55b60.png?v=1742496397', minPlayers: 2, maxPlayers: 5, minPlaytime: 45, maxPlaytime: 75, durationCat: 'kurz', rating: '7.9', description: 'Wirtschaftsspiel im London des 18. Jahrhunderts – ein queeres Gasthaus führen.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-      { id: 271971, name: 'John Company: Second Edition', thumbnail: 'https://wehrlegig.com/cdn/shop/files/JohnCompanyBoxTransparent.png?v=1742496617', minPlayers: 1, maxPlayers: 6, minPlaytime: 120, maxPlaytime: 180, durationCat: 'lang', rating: '8.3', description: 'Kooperativ-kompetitives Spiel über die British East India Company.', addedBy: 'Nico', addedAt: new Date().toISOString() },
-    ],
+    games: [],
     gameVotes: {},
     schedule: {},
     ...overrides
@@ -1500,12 +1494,6 @@ function app() {
         } catch(e) {}
         _dataLoadedFromRemote = true; // allow saves even without remote (offline mode)
       }
-      // Mock-Daten: games auffüllen wenn leer (nur nach erfolgreichem Load)
-      if (!this.games || this.games.length === 0) {
-        this.games = defaultEventData().games;
-        // scheduleSave handled by $watch below
-      }
-
       // Lokale Identity wiederherstellen und validieren
       const saved = localStorage.getItem('bswe_identity');
       if (saved && (saved === 'admin' || this.allPeople.find(p => p.id === saved))) {
