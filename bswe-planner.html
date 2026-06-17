@@ -1237,10 +1237,12 @@ function scheduleSave(appState) {
   _saveTimer = setTimeout(() => {
     const snapshot = {};
     PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
+    const ts = new Date().toISOString();
+    snapshot._savedAt = ts;
     _lastSnapshot = snapshot;
     supabasePut(snapshot);
     // Also keep a localStorage backup (last known good state)
-    try { localStorage.setItem('bswe_backup', JSON.stringify({ts: new Date().toISOString(), data: snapshot})); } catch(e) {}
+    try { localStorage.setItem('bswe_backup', JSON.stringify({ts, data: snapshot})); } catch(e) {}
   }, 1500);
 }
 async function retrySync() {
@@ -1463,6 +1465,29 @@ function app() {
       // State von Supabase laden (zuerst — damit peopleName() beim Identity-Check funktioniert)
       const remote = await supabaseGet();
       if (remote) {
+        // Check if local backup is newer (user made offline edits that never synced)
+        try {
+          const bk = localStorage.getItem('bswe_backup');
+          if (bk) {
+            const { ts, data: localData } = JSON.parse(bk);
+            const remoteTs = remote._savedAt || null;
+            if (localData && localData.events && ts && remoteTs && new Date(ts) > new Date(remoteTs)) {
+              const useLocal = confirm(
+                '⚠️ Du hast ungespeicherte Offline-Änderungen vom ' +
+                new Date(ts).toLocaleString('de-DE') +
+                '.\n\nDiese sind neuer als der gespeicherte Stand. Offline-Änderungen laden statt des gespeicherten Stands?\n\n' +
+                'OK = Meine Offline-Änderungen behalten\nAbbrechen = Gespeicherten Stand laden'
+              );
+              if (useLocal) {
+                PERSIST_KEYS.forEach(k => { if (localData[k] !== undefined) this[k] = localData[k]; });
+                _dataLoadedFromRemote = true;
+                scheduleSave(this); // push local changes to Supabase now
+                return; // skip loading remote
+              }
+            }
+          }
+        } catch(e) {}
+
         if (remote.events) {
           // New format: load directly
           PERSIST_KEYS.forEach(k => { if (remote[k] !== undefined) this[k] = remote[k]; });
