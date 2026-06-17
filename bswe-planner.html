@@ -49,6 +49,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .app-header { background: #1a1a1a; color: #f5f4f0; padding: 16px 24px; display: flex; align-items: baseline; gap: 12px; }
 .app-header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
 .app-header span { font-size: 0.82rem; opacity: 0.45; }
+.sync-indicator { font-size: 0.75rem; margin-left: auto; padding: 2px 8px; border-radius: 4px; }
+.sync-saving { color: #888; }
+.sync-saved { color: #2d7a3a; }
+.sync-error { color: #fff; background: #c0392b; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.sync-retry-btn { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 3px; padding: 0 6px; margin-left: 6px; cursor: pointer; font-size: 0.75rem; }
 
 .identity-bar { background: #fff; border-bottom: 1px solid #e8e6e0; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: background 0.2s; }
 .identity-bar.admin-mode { background: #fff6df; border-bottom-color: #E0A019; }
@@ -355,6 +360,16 @@ h2 { font-size: 1.02rem; font-weight: 700; }
     </span>
   </template>
   <span class="identity-toast" x-show="loginToast" x-transition.opacity>✓ Angemeldet</span>
+  <span class="sync-indicator"
+    x-data="{ status: 'idle' }"
+    x-init="document.addEventListener('syncstatus', e => status = e.detail)"
+    :class="'sync-' + status"
+    x-show="status !== 'idle'"
+    x-transition.opacity>
+    <span x-show="status === 'saving'">💾 Speichern…</span>
+    <span x-show="status === 'saved'">✓ Gespeichert</span>
+    <span x-show="status === 'error'">⚠ Sync fehlgeschlagen <button class="sync-retry-btn" @click="retrySync()">↺ Nochmal</button></span>
+  </span>
   <button class="switch-btn" @click="switchIdentity()">Wechseln</button>
 </div>
 
@@ -1119,29 +1134,52 @@ const SUPABASE_URL  = 'https://jauydszynxlmjoawhxiz.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphdXlkc3p5bnhsbWpvYXdoeGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTYxNTQsImV4cCI6MjA5NTYzMjE1NH0.GIlRX-L1Hdyd0jZiK95tUlhwoYBsnV82fcVuvsH0HKs';
 const STATE_ROW_ID  = 'bswe2027';
 
-async function supabaseGet() {
-  if (SUPABASE_URL === 'DEINE_SUPABASE_URL') return null;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/bswe_state?id=eq.${STATE_ROW_ID}&select=data`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = await r.json();
-    return rows.length ? rows[0].data : null;
-  } catch(e) { console.warn('Supabase load error:', e); return null; }
+// ── Sync status (reactive, picked up by Alpine) ──
+window._syncStatus = 'idle'; // 'idle' | 'saving' | 'saved' | 'error'
+function setSyncStatus(s) {
+  window._syncStatus = s;
+  document.dispatchEvent(new CustomEvent('syncstatus', { detail: s }));
 }
 
-async function supabasePut(data) {
+async function supabaseGet(retries = 3, delayMs = 1500) {
+  if (SUPABASE_URL === 'DEINE_SUPABASE_URL') return null;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/bswe_state?id=eq.${STATE_ROW_ID}&select=data`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+      });
+      const rows = await r.json();
+      return rows.length ? rows[0].data : null;
+    } catch(e) {
+      console.warn(`Supabase load error (attempt ${attempt + 1}/${retries}):`, e);
+      if (attempt < retries - 1) await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+    }
+  }
+  return null;
+}
+
+async function supabasePut(data, retries = 4, delayMs = 2000) {
   if (SUPABASE_URL === 'DEINE_SUPABASE_URL') return;
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/bswe_state`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ id: STATE_ROW_ID, data, updated_at: new Date().toISOString() })
-    });
-  } catch(e) { console.warn('Supabase save error:', e); }
+  setSyncStatus('saving');
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/bswe_state`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({ id: STATE_ROW_ID, data, updated_at: new Date().toISOString() })
+      });
+      setSyncStatus('saved');
+      setTimeout(() => setSyncStatus('idle'), 2000);
+      return;
+    } catch(e) {
+      console.warn(`Supabase save error (attempt ${attempt + 1}/${retries}):`, e);
+      if (attempt < retries - 1) await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+    }
+  }
+  setSyncStatus('error');
 }
 
 // Felder die persistent gespeichert werden:
@@ -1191,6 +1229,7 @@ function defaultEventData(overrides = {}) {
 }
 
 let _saveTimer = null;
+let _lastSnapshot = null; // retained for manual retry after failed sync
 let _dataLoadedFromRemote = false; // Guard: never overwrite Supabase before remote data was confirmed loaded
 function scheduleSave(appState) {
   if (!_dataLoadedFromRemote) return; // Safety: don't save default state over real data
@@ -1198,10 +1237,15 @@ function scheduleSave(appState) {
   _saveTimer = setTimeout(() => {
     const snapshot = {};
     PERSIST_KEYS.forEach(k => { snapshot[k] = appState[k]; });
+    _lastSnapshot = snapshot;
     supabasePut(snapshot);
     // Also keep a localStorage backup (last known good state)
     try { localStorage.setItem('bswe_backup', JSON.stringify({ts: new Date().toISOString(), data: snapshot})); } catch(e) {}
   }, 1500);
+}
+async function retrySync() {
+  if (!_lastSnapshot) return;
+  await supabasePut(_lastSnapshot);
 }
 
 // ── Smart rounding for shopping list ──

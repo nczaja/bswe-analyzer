@@ -341,21 +341,24 @@ async def bgg_thing(id: str = Query(...)):
         except Exception:
             pass
 
-    # Instructional video preferred
+    # Instructional video: prefer English > German > other, newest first within each group
     video_url = None
     videos_el = item.find("videos")
     if videos_el is not None:
-        first = None
-        for v in videos_el.findall("video"):
-            link = v.get("link", "")
-            cat = v.get("category", "").lower()
-            if not first:
-                first = link
-            if cat == "instructional":
-                video_url = link
-                break
-        if not video_url:
-            video_url = first
+        def lang_priority(v):
+            lang = v.get("language", "").lower()
+            if "english" in lang:                      return 0
+            if "german" in lang or "deutsch" in lang:  return 1
+            return 2
+
+        all_videos = videos_el.findall("video")
+        instructional = [v for v in all_videos if v.get("category", "").lower() == "instructional"]
+        pool = instructional or all_videos
+        if pool:
+            # Stable two-pass: newest first, then by language priority
+            pool = sorted(pool, key=lambda v: v.get("postdate", ""), reverse=True)
+            pool = sorted(pool, key=lang_priority)
+            video_url = pool[0].get("link", "") or None
 
     return {
         "id": id,
